@@ -11,7 +11,7 @@ import { Versionable } from "./base/Versionable.sol";
 
 /**
  * @title BalanceTracker contract
- * @author CloudWalk Inc.
+ * @author CloudWalk Inc. (See https://cloudwalk.io)
  * @notice The contract that keeps track of the token balance for each account on a daily basis
  */
 contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Versionable {
