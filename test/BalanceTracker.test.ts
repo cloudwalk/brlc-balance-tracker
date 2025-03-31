@@ -669,6 +669,14 @@ describe("Contract 'BalanceTracker'", async () => {
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
 
+        it("The 'from' day is after the init day and the `to` day is at the first record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
+          const dayFrom: number = context.balanceTrackerInitDay + 1;
+          const dayTo: number = tokenTransfers[0].executionDay;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
         it("The 'from' day is after the init day and the `to` day is prior the last record day", async () => {
           const context: TestContext = await initTestContext();
           const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
