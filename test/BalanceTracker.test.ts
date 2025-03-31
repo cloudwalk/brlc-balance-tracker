@@ -619,7 +619,7 @@ describe("Contract 'BalanceTracker'", async () => {
         expect(expectedDailyBalancesForUser2).to.deep.equal(actualDailyBalancesForUser2);
       }
 
-      function prepareTokenTransfers(firstTransferDay: number): TokenTransfer[] {
+      function prepareTokenTransfers(firstTransferDay: number, numberOfTransfers: number = 3): TokenTransfer[] {
         const transfer1: TokenTransfer = {
           executionDay: firstTransferDay,
           addressFrom: user1.address,
@@ -638,7 +638,10 @@ describe("Contract 'BalanceTracker'", async () => {
           addressTo: user2.address,
           amount: BigNumber.from(987654320 / 2)
         };
-        return [transfer1, transfer2, transfer3];
+        if (numberOfTransfers > 3 || numberOfTransfers < 1) {
+          throw Error(`Invalid number of transfers: ${numberOfTransfers}`);
+        }
+        return [transfer1, transfer2, transfer3].slice(0, numberOfTransfers);
       }
 
       describe("There are several balance records starting from the init day with gaps and", async () => {
@@ -697,6 +700,48 @@ describe("Contract 'BalanceTracker'", async () => {
           const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
           const dayFrom: number = context.balanceTrackerInitDay;
           const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+      });
+
+      describe("There is a single balance records starting 2 days after the init day with gaps and", async () => {
+        it("The 'from' day equals the init day and the `to` day is after the last record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+          const dayFrom: number = context.balanceTrackerInitDay;
+          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day equals the init day and the `to` day is prior the last record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+          const dayFrom: number = context.balanceTrackerInitDay;
+          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day is after the init day and the `to` day after the last record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+          const dayFrom: number = context.balanceTrackerInitDay + 1;
+          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day is after the init day and the `to` day is prior the last record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+          const dayFrom: number = context.balanceTrackerInitDay + 1;
+          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day and the `to` day are both after the last record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+          const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 3;
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
       });
