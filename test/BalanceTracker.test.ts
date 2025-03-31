@@ -702,6 +702,14 @@ describe("Contract 'BalanceTracker'", async () => {
           const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
+
+        it("The 'from' day equals the init day and the `to` day is before the first record day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+          const dayFrom: number = context.balanceTrackerInitDay;
+          const dayTo: number = tokenTransfers[0].executionDay - 2;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
       });
 
       describe("There is a single balance records starting 2 days after the init day with gaps and", async () => {
