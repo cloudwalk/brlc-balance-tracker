@@ -240,8 +240,12 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
              * Therefore find the record with a day that is ahead of the `to` day
              * and set the `balance` variable to the value of that record
              */
-            while (_balanceRecords[account][--recordIndex].day > toDay) {}
-            balance = _balanceRecords[account][recordIndex + 1].value;
+            while (recordIndex > 0 && _balanceRecords[account][--recordIndex].day > toDay) {}
+            if (recordIndex == 0 && _balanceRecords[account][recordIndex].day > toDay) {
+                balance = _balanceRecords[account][recordIndex].value;
+            } else {
+                balance = _balanceRecords[account][recordIndex + 1].value;
+            }
             day = _balanceRecords[account][recordIndex].day;
         }
 

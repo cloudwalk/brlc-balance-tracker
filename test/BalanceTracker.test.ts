@@ -283,7 +283,7 @@ describe("Contract 'BalanceTracker'", async () => {
   const EXPECTED_VERSION: Version = {
     major: 1,
     minor: 0,
-    patch: 0
+    patch: 1
   };
 
   let balanceTrackerFactory: ContractFactory;
@@ -619,7 +619,7 @@ describe("Contract 'BalanceTracker'", async () => {
         expect(expectedDailyBalancesForUser2).to.deep.equal(actualDailyBalancesForUser2);
       }
 
-      function prepareTokenTransfers(firstTransferDay: number): TokenTransfer[] {
+      function prepareTokenTransfers(firstTransferDay: number, numberOfTransfers: number = 3): TokenTransfer[] {
         const transfer1: TokenTransfer = {
           executionDay: firstTransferDay,
           addressFrom: user1.address,
@@ -627,22 +627,33 @@ describe("Contract 'BalanceTracker'", async () => {
           amount: BigNumber.from(123456789)
         };
         const transfer2: TokenTransfer = {
-          executionDay: firstTransferDay + 2,
+          executionDay: firstTransferDay + 3,
           addressFrom: user2.address,
           addressTo: user1.address,
           amount: BigNumber.from(987654321)
         };
         const transfer3: TokenTransfer = {
-          executionDay: firstTransferDay + 6,
+          executionDay: firstTransferDay + 7,
           addressFrom: user1.address,
           addressTo: user2.address,
           amount: BigNumber.from(987654320 / 2)
         };
-        return [transfer1, transfer2, transfer3];
+        if (numberOfTransfers > 3 || numberOfTransfers < 1) {
+          throw Error(`Invalid number of transfers: ${numberOfTransfers}`);
+        }
+        return [transfer1, transfer2, transfer3].slice(0, numberOfTransfers);
       }
 
-      describe("There are several balance records starting from the init day with gaps and", async () => {
-        it("The 'from' day equals the init day and the `to` day is after the last record day", async () => {
+      describe("There are 3 balance records starting from the init day with gaps and", async () => {
+        it("The 'from' day equals the init day and the `to` day equals the 'from' day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
+          const dayFrom: number = context.balanceTrackerInitDay;
+          const dayTo: number = (dayFrom);
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day equals the init day and the `to` day is after the last record", async () => {
           const context: TestContext = await initTestContext();
           const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
           const dayFrom: number = context.balanceTrackerInitDay;
@@ -650,63 +661,399 @@ describe("Contract 'BalanceTracker'", async () => {
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
 
-        it("The 'from' day equals the init day and the `to` day is prior the last record day", async () => {
-          const context: TestContext = await initTestContext();
-          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
-          const dayFrom: number = context.balanceTrackerInitDay;
-          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
-          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
-        });
-
-        it("The 'from' day is after the init day and the `to` day after the last record day", async () => {
+        it("The 'from' day is after the init day and the `to` day is after the first record", async () => {
           const context: TestContext = await initTestContext();
           const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
           const dayFrom: number = context.balanceTrackerInitDay + 1;
-          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+          const dayTo: number = tokenTransfers[0].executionDay + 1;
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
 
-        it("The 'from' day is after the init day and the `to` day is prior the last record day", async () => {
+        it("The 'from' day is after the init day and the `to` day is before the last record", async () => {
           const context: TestContext = await initTestContext();
           const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
           const dayFrom: number = context.balanceTrackerInitDay + 1;
           const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
-          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
-        });
-
-        it("The 'from' day and the `to` day are both between records and prior the last record day", async () => {
-          const context: TestContext = await initTestContext();
-          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
-          const dayFrom: number = tokenTransfers[tokenTransfers.length - 2].executionDay;
-          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
-          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
-        });
-
-        it("The 'from' day and the `to` day are both after the last record day", async () => {
-          const context: TestContext = await initTestContext();
-          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 1);
-          const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
-          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 3;
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
       });
 
-      describe("There are several balance records starting 2 days after the init day with gaps and", async () => {
-        it("The 'from' day equals the init day and the `to` day is after the last record day", async () => {
-          const context: TestContext = await initTestContext();
-          const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
-          const dayFrom: number = context.balanceTrackerInitDay;
-          const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
-          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+      describe("There are 3 balance records starting 2 days after the init day with gaps and", async () => {
+        describe("The 'from' day equals the init day and", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is before the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[0].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[0].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day equals the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = tokenTransfers[0].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is after the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay + 1;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay + 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay + 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[0].executionDay + 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is before the last record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the last record day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 2;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day equals the last record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay - 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is after the last record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the last record and the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3);
+            const dayFrom: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 1;
+            const dayTo: number = tokenTransfers[tokenTransfers.length - 1].executionDay + 3;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+      });
+
+      describe("There is a single starting 2 days after the init day with gaps day and", async () => {
+        describe("The 'from' day equals the init day and", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is before the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay - 2;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = context.balanceTrackerInitDay;
+            const dayTo: number = tokenTransfers[0].executionDay + 3;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is before the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day equals the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[0].executionDay - 1;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay - 2;
+            const dayTo: number = tokenTransfers[0].executionDay + 3;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day equals the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the first record", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay - 1;
+            const dayTo: number = tokenTransfers[0].executionDay + 3;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+        });
+
+        describe("The 'from' day is after the first record", async () => {
+          it("The `to` day equals the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay + 3;
+            const dayTo: number = (dayFrom);
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
+
+          it("The `to` day is after the 'from' day", async () => {
+            const context: TestContext = await initTestContext();
+            const tokenTransfers: TokenTransfer[] = prepareTokenTransfers(context.balanceTrackerInitDay + 3, 1);
+            const dayFrom: number = tokenTransfers[0].executionDay + 3;
+            const dayTo: number = dayFrom + 3;
+            await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+          });
         });
       });
 
       describe("There are no balance records", async () => {
+        it("The 'from' day equals the init day and the `to` day equals the 'from' day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = [];
+          const dayFrom: number = context.balanceTrackerInitDay;
+          const dayTo: number = (dayFrom);
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
         it("The 'from' day equals the init day and the `to` day is three days after the init day", async () => {
           const context: TestContext = await initTestContext();
           const tokenTransfers: TokenTransfer[] = [];
           const dayFrom: number = context.balanceTrackerInitDay;
           const dayTo: number = context.balanceTrackerInitDay + 3;
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day is 3 days after the init day and the `to` day equals the 'from' day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = [];
+          const dayFrom: number = context.balanceTrackerInitDay + 3;
+          const dayTo: number = (dayFrom);
+          await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
+        });
+
+        it("The 'from' day is 3 days after the init day and the `to` day is 5 days after the init day", async () => {
+          const context: TestContext = await initTestContext();
+          const tokenTransfers: TokenTransfer[] = [];
+          const dayFrom: number = context.balanceTrackerInitDay + 3;
+          const dayTo: number = context.balanceTrackerInitDay + 5;
           await checkDailyBalances(context, tokenTransfers, dayFrom, dayTo);
         });
       });
