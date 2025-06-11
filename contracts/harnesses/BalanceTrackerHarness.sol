@@ -9,6 +9,7 @@ import { HarnessAdministrable } from "./HarnessAdministrable.sol";
  * @title BalanceTrackerHarness contract
  * @author CloudWalk Inc. (See https://cloudwalk.io)
  * @notice The same as {BalanceTracker} but with the new functions of setting internal variables for testing
+ * @custom:oz-upgrades-unsafe-allow missing-initializer
  */
 contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     /// @notice The structure with the contract state
