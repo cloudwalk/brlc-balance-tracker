@@ -278,8 +278,12 @@ async function deployTokenMockFromSpecialAccount(deployer: HardhatEthersSigner):
 }
 
 describe("Contract 'BalanceTracker'", async () => {
+  // Errors of the harness contract under test
+  const EVENT_NAME_Harness_Admin_Configured = "HarnessAdminConfigured";
+
   // Error messages of the library contracts
   const ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED = "Initializable: contract is already initialized";
+  const ERROR_MESSAGE_OWNABLE_CALLER_IS_NOT_THE_OWNER = "Ownable: caller is not the owner";
 
   // Errors of the contract under test
   const ERROR_NAME_FROM_DAY_PRIOR_INIT_DAY = "FromDayPriorInitDay";
@@ -287,6 +291,7 @@ describe("Contract 'BalanceTracker'", async () => {
   const ERROR_NAME_SAFE_CAST_OVERFLOW_UINT16 = "SafeCastOverflowUint16";
   const ERROR_NAME_SAFE_CAST_OVERFLOW_UINT240 = "SafeCastOverflowUint240";
   const ERROR_NAME_UNAUTHORIZED_CALLER = "UnauthorizedCaller";
+  const ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN = "UnauthorizedHarnessAdmin";
 
   const EXPECTED_VERSION: Version = {
     major: 1,
@@ -1089,6 +1094,199 @@ describe("Contract 'BalanceTracker'", async () => {
         await expect(
           context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo)
         ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_TO_DAY_PRIOR_FROM_DAY);
+      });
+    });
+  });
+
+  describe("Harness functions", async () => {
+    const accountAddress = "0x0000000000000000000000000000000000000001";
+    const balanceRecords: BalanceRecord[] = [
+      {
+        accountAddress,
+        index: 0,
+        day: 123,
+        value: 3456789n
+      },
+      {
+        accountAddress,
+        index: 1,
+        day: 321,
+        value: 987654321n
+      }
+    ];
+
+    const balanceRecordsRaw: { day: number; value: bigint }[] = balanceRecords.map(record => (
+      {
+        day: record.day,
+        value: record.value
+      }
+    ));
+
+    describe("Function `configureHarnessAdmin()`", async () => {
+      it("Executes as expected if it is called by the owner", async () => {
+        const context: TestContext = await initTestContext();
+        const harnessAdminAddress = user1.address;
+
+        await expect(context.balanceTracker.configureHarnessAdmin(harnessAdminAddress, true))
+          .to.emit(context.balanceTracker, EVENT_NAME_Harness_Admin_Configured)
+          .withArgs(harnessAdminAddress, true);
+        expect(await context.balanceTracker.isHarnessAdmin(harnessAdminAddress)).to.equal(true);
+
+        // Do not emit the event if called the second time with the same parameters
+        await expect(context.balanceTracker.configureHarnessAdmin(harnessAdminAddress, true))
+          .not.to.emit(context.balanceTracker, EVENT_NAME_Harness_Admin_Configured);
+
+        await expect(context.balanceTracker.configureHarnessAdmin(harnessAdminAddress, false))
+          .to.emit(context.balanceTracker, EVENT_NAME_Harness_Admin_Configured)
+          .withArgs(harnessAdminAddress, false);
+        expect(await context.balanceTracker.isHarnessAdmin(harnessAdminAddress)).to.equal(false);
+      });
+
+      it("Is reverted if called not by the owner", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(connect(context.balanceTracker, attacker).configureHarnessAdmin(user1.address, true))
+          .to.be.revertedWith(ERROR_MESSAGE_OWNABLE_CALLER_IS_NOT_THE_OWNER);
+      });
+    });
+
+    describe("Function `setInitializationDay()`", async () => {
+      it("Executes as expected if it is called by the owner", async () => {
+        const context: TestContext = await initTestContext();
+
+        const oldInitializationDay = await context.balanceTracker.INITIALIZATION_DAY();
+        const newInitializationDay = maxUintForBits(16);
+        expect(oldInitializationDay).not.to.equal(newInitializationDay);
+
+        await proveTx(context.balanceTracker.setInitializationDay(newInitializationDay));
+        expect(await context.balanceTracker.INITIALIZATION_DAY()).to.equal(newInitializationDay);
+      });
+
+      it("Is reverted if called not by the owner", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(connect(context.balanceTracker, attacker).setInitializationDay(123))
+          .to.be.revertedWith(ERROR_MESSAGE_OWNABLE_CALLER_IS_NOT_THE_OWNER);
+      });
+    });
+
+    describe("Function `addBalanceRecord()`", async () => {
+      it("Executes as expected if it is called by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        const balanceRecord = balanceRecords[0];
+
+        await proveTx(context.balanceTracker.addBalanceRecord(
+          balanceRecord.accountAddress,
+          balanceRecord.day,
+          balanceRecord.value
+        ));
+        await checkBalanceRecordsForAccount(context.balanceTracker, balanceRecord.accountAddress, [balanceRecord]);
+      });
+
+      it("Is reverted if called not by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        const balanceRecord = balanceRecords[0];
+
+        await expect(
+          connect(context.balanceTracker, attacker).addBalanceRecord(
+            balanceRecord.accountAddress,
+            balanceRecord.day,
+            balanceRecord.value
+          )
+        ).to.be.revertedWithCustomError(
+          context.balanceTracker,
+          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
+        ).withArgs(attacker.address);
+      });
+    });
+
+    describe("Function `setBalanceRecords()`", async () => {
+      it("Executes as expected if it is called by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+
+        await proveTx(context.balanceTracker.setBalanceRecords(accountAddress, balanceRecordsRaw));
+        await checkBalanceRecordsForAccount(context.balanceTracker, accountAddress, balanceRecords);
+      });
+
+      it("Is reverted if called not by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(
+          connect(context.balanceTracker, attacker).setBalanceRecords(accountAddress, balanceRecordsRaw)
+        ).to.be.revertedWithCustomError(
+          context.balanceTracker,
+          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
+        ).withArgs(attacker.address);
+      });
+    });
+
+    describe("Function `deleteBalanceRecords()`", async () => {
+      it("Executes as expected if it is called by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+
+        await proveTx(context.balanceTracker.setBalanceRecords(accountAddress, balanceRecordsRaw));
+        await checkBalanceRecordsForAccount(context.balanceTracker, accountAddress, balanceRecords);
+
+        await proveTx(context.balanceTracker.deleteBalanceRecords(accountAddress));
+        await checkBalanceRecordsForAccount(context.balanceTracker, accountAddress, []);
+      });
+
+      it("Is reverted if called not by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(
+          connect(context.balanceTracker, attacker).deleteBalanceRecords(accountAddress)
+        ).to.be.revertedWithCustomError(
+          context.balanceTracker,
+          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
+        ).withArgs(attacker.address);
+      });
+    });
+
+    describe("Function `setBlockTimestamp()`", async () => {
+      const day = 123;
+      const time = 456;
+
+      it("Executes as expected if it is called by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        const timestamp = day * 24 * 60 * 60 + time;
+        const expectedDayAndTime = toDayAndTime(timestamp);
+        const expectedDayAndTimeArray = [expectedDayAndTime.dayIndex, expectedDayAndTime.secondsOfDay];
+
+        await proveTx(context.balanceTracker.setBlockTimestamp(day, time));
+        expect(await context.balanceTracker.getCurrentBlockTimestamp()).to.equal(timestamp);
+        expect(await context.balanceTracker.dayAndTime()).to.deep.equal(expectedDayAndTimeArray);
+
+        // Check the case when the timestamp is less than NEGATIVE_TIME_SHIFT
+        await proveTx(context.balanceTracker.setBlockTimestamp(0, NEGATIVE_TIME_SHIFT - 1));
+        expect(await context.balanceTracker.getCurrentBlockTimestamp()).to.equal(NEGATIVE_TIME_SHIFT - 1);
+        expect(await context.balanceTracker.dayAndTime()).to.deep.equal([0, 0]);
+      });
+
+      it("Is reverted if called not by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(
+          connect(context.balanceTracker, attacker).setBlockTimestamp(day, time)
+        ).to.be.revertedWithCustomError(
+          context.balanceTracker,
+          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
+        ).withArgs(attacker.address);
+      });
+    });
+
+    describe("Function `setUsingRealBlockTimestamps()`", async () => {
+      it("Executes as expected if it is called by a harness admin", async () => {
+        const context: TestContext = await initTestContext();
+
+        await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(true));
+        expect(await context.balanceTracker.getUsingRealBlockTimestamps()).to.equal(true);
+        expect(await context.balanceTracker.dayAndTime()).not.to.deep.equal([0, 0]);
+
+        await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(false));
+        expect(await context.balanceTracker.getUsingRealBlockTimestamps()).to.equal(false);
+        expect(await context.balanceTracker.dayAndTime()).to.deep.equal([0, 0]);
+      });
+
+      it("Is reverted if called not by the owner", async () => {
+        const context: TestContext = await initTestContext();
+        await expect(connect(context.balanceTracker, attacker).setUsingRealBlockTimestamps(true))
+          .to.be.revertedWith(ERROR_MESSAGE_OWNABLE_CALLER_IS_NOT_THE_OWNER);
       });
     });
   });
