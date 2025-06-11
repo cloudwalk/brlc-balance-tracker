@@ -110,26 +110,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      * See details https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable
      */
     function initialize() external virtual initializer {
-        __BalanceTracker_init();
-    }
-
-    /**
-     * @notice The internal initializer of the upgradable contract
-     *
-     * See {BalanceTracker-initialize}
-     */
-    function __BalanceTracker_init() internal onlyInitializing {
-        __Context_init_unchained();
         __Ownable_init_unchained();
-        __BalanceTracker_init_unchained();
-    }
-
-    /**
-     * @notice The internal unchained initializer of the upgradable contract
-     *
-     * See {BalanceTracker-initialize}
-     */
-    function __BalanceTracker_init_unchained() internal onlyInitializing {
         (uint256 day, ) = dayAndTime();
         INITIALIZATION_DAY = _toUint16(day);
         IERC20Upgradeable(TOKEN).totalSupply();
