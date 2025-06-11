@@ -12,6 +12,8 @@ import { HarnessAdministrable } from "./HarnessAdministrable.sol";
  * @custom:oz-upgrades-unsafe-allow missing-initializer
  */
 contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
+    // ------------------ Storage layout -------------------------- //
+
     /// @notice The structure with the contract state
     struct BalanceTrackerHarnessState {
         uint256 currentBlockTimestamp;
@@ -22,6 +24,8 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     /// @notice The memory slot used to store the contract state
     /// @dev It is the same as keccak256("balance tracker harness storage slot")
     bytes32 private constant _STORAGE_SLOT = 0xceb91ca8f20e7d3bc24614515796ccaa88bb45ed0206676ef6d6620478090c43;
+
+    // ------------------ Transactional functions  ---------------- //
 
     /**
      * @notice Sets the initialization day of the balance tracker
@@ -58,6 +62,15 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
+     * @notice Deletes all records from the balance record chronological array for an account
+     *
+     * @param account The address of the account to clear the balance record array for
+     */
+    function deleteBalanceRecords(address account) external onlyHarnessAdmin {
+        delete _balanceRecords[account];
+    }
+
+    /**
      * @notice Sets the current block time that should be used by the contract in certain conditions
      *
      * @param day The new day index starting from the Unix epoch to set
@@ -80,14 +93,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
         state.initialized = true;
     }
 
-    /**
-     * @notice Deletes all records from the balance record chronological array for an account
-     *
-     * @param account The address of the account to clear the balance record array for
-     */
-    function deleteBalanceRecords(address account) external onlyHarnessAdmin {
-        delete _balanceRecords[account];
-    }
+    // ------------------ View functions  ------------------------- //
 
     /**
      * @notice Returns the boolean value that defines whether the real block time is used in the contract or not
@@ -104,6 +110,8 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
         BalanceTrackerHarnessState storage state = _getBalanceTrackerHarnessState();
         return state.currentBlockTimestamp;
     }
+
+    // ------------------ Internal functions  --------------------- //
 
     /// @notice Returns the block timestamp according to the contract settings: the real time or a previously set time
     function _blockTimestamp() internal view virtual override returns (uint256) {

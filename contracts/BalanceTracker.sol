@@ -15,11 +15,7 @@ import { Versionable } from "./base/Versionable.sol";
  * @notice The contract that keeps track of the token balance for each account on a daily basis
  */
 contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Versionable {
-    /// @notice The time shift of a day in seconds
-    uint256 public constant NEGATIVE_TIME_SHIFT = 3 hours;
-
-    /// @notice The address of the hooked token contract
-    address public constant TOKEN = address(0x1b470f79D29839dBCCa9c61c06941E27B3aFbF6d);
+    // ------------------ Types ----------------------------------- //
 
     /**
      * @notice The day-value pair
@@ -32,13 +28,29 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         uint240 value;
     }
 
+    // ------------------ Constants ------------------------------- //
+
+    /// @notice The time shift of a day in seconds
+    uint256 public constant NEGATIVE_TIME_SHIFT = 3 hours;
+
+    /// @notice The address of the hooked token contract
+    address public constant TOKEN = address(0x1b470f79D29839dBCCa9c61c06941E27B3aFbF6d);
+
+    // ------------------ Storage --------------------------------- //
+
     /// @notice The index of the initialization day
     uint16 public INITIALIZATION_DAY;
 
     /// @notice The mapping of an account to daily balance records
     mapping(address => Record[]) public _balanceRecords;
 
-    // -------------------- Events -----------------------------------
+    /**
+     * @dev This empty reserved space is put in place to allow future versions
+     * to add new variables without shifting down storage in the inheritance chain
+     */
+    uint256[48] private __gap;
+
+    // ------------------ Events ---------------------------------- //
 
     /**
      * @notice Emitted when a new balance record is created
@@ -49,7 +61,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      */
     event BalanceRecordCreated(address indexed account, uint16 day, uint240 balance);
 
-    // -------------------- Errors -----------------------------------
+    // ------------------ Errors ---------------------------------- //
 
     /**
      * @notice Thrown when the specified "from" day is prior the contract initialization day
@@ -78,7 +90,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      */
     error UnauthorizedCaller(address account);
 
-    // -------------------- Modifiers --------------------------------
+    // ------------------ Modifiers ------------------------------- //
 
     /**
      * @notice Throws if called by any account other than the token contract
@@ -90,7 +102,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         _;
     }
 
-    // -------------------- Initializers -----------------------------
+    // ------------------ Constructor ----------------------------- //
 
     /**
      * @notice Constructor that prohibits the initialization of the implementation of the upgradable contract
@@ -104,6 +116,8 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         _disableInitializers();
     }
 
+    // ------------------ Initializers ---------------------------- //
+
     /**
      * @notice The initializer of the upgradable contract
      *
@@ -116,7 +130,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         IERC20Upgradeable(TOKEN).totalSupply();
     }
 
-    // -------------------- Hook Functions ---------------------------
+    // ------------------ Transactional hook functions ------------ //
 
     /**
      * @inheritdoc IERC20Hook
@@ -163,7 +177,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      */
     function beforeTokenTransfer(address from, address to, uint256 amount) external override onlyToken {}
 
-    // -------------------- View Functions ---------------------------
+    // ------------------ View functions  ------------------------- //
 
     /**
      * @notice Reads the balance record array
@@ -267,7 +281,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         return TOKEN;
     }
 
-    // -------------------- Internal Functions -----------------------
+    // ------------------ Internal functions  --------------------- //
 
     /**
      * @notice Returns the current block timestamp with the time shift
@@ -299,10 +313,4 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
 
         return uint16(value);
     }
-
-    /**
-     * @dev This empty reserved space is put in place to allow future versions
-     * to add new variables without shifting down storage in the inheritance chain
-     */
-    uint256[48] private __gap;
 }
