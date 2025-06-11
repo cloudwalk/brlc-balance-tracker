@@ -1,42 +1,48 @@
 import { ethers, network, upgrades } from "hardhat";
 import { expect } from "chai";
-import { BigNumber, Contract, ContractFactory, Wallet } from "ethers";
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
+import { Contract, ContractFactory, TransactionResponse } from "ethers";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
-import { Block, TransactionReceipt, TransactionResponse } from "@ethersproject/abstract-provider";
-import { getLatestBlockTimestamp, increaseBlockTimestamp, proveTx } from "../test-utils/eth";
+import {
+  connect,
+  getAddress,
+  getLatestBlockTimestamp,
+  getTxTimestamp,
+  increaseBlockTimestamp,
+  proveTx
+} from "../test-utils/eth";
 
 const HOUR_IN_SECONDS = 3600;
 const DAY_IN_SECONDS = 24 * HOUR_IN_SECONDS;
 const NEGATIVE_TIME_SHIFT = 3 * HOUR_IN_SECONDS;
-const ZERO_ADDRESS = ethers.constants.AddressZero;
-const ZERO_BIG_NUMBER = ethers.constants.Zero;
-const INIT_TOKEN_BALANCE: BigNumber = BigNumber.from(1000_000_000_000);
+const ZERO_ADDRESS = ethers.ZeroAddress;
+const ZERO_BIG_NUMBER = 0n;
+const INIT_TOKEN_BALANCE: bigint = 1000_000_000_000n;
 
 interface BalanceRecord {
   accountAddress: string;
   index: number;
   day: number;
-  value: BigNumber;
+  value: bigint;
 }
 
 interface TokenTransfer {
   executionDay: number;
   addressFrom: string;
   addressTo: string;
-  amount: BigNumber;
+  amount: bigint;
 }
 
 interface BalanceChange {
   executionDay: number;
   address: string;
-  amountChange: BigNumber;
+  amountChange: bigint;
 }
 
 interface TestContext {
   balanceTracker: Contract;
   balanceTrackerInitDay: number;
-  balanceByAddressMap: Map<string, BigNumber>;
+  balanceByAddressMap: Map<string, bigint>;
   balanceRecordsByAddressMap: Map<string, BalanceRecord[]>;
 }
 
@@ -54,7 +60,7 @@ interface Version {
   [key: string]: number; // Indexing signature to ensure that fields are iterated over in a key-value style
 }
 
-async function setUpFixture<T>(func: () => Promise<T>): Promise<T> {
+export async function setUpFixture<T>(func: () => Promise<T>): Promise<T> {
   if (network.name === "hardhat") {
     return loadFixture(func);
   } else {
@@ -77,9 +83,8 @@ function toDayIndex(timestampInSeconds: number): number {
   return dayIndex;
 }
 
-async function getTxDayIndex(txReceipt: TransactionReceipt): Promise<number> {
-  const block: Block = await ethers.provider.getBlock(txReceipt.blockNumber);
-  return toDayIndex(block.timestamp);
+export function maxUintForBits(numberOfBits: number): bigint {
+  return 2n ** BigInt(numberOfBits) - 1n;
 }
 
 async function increaseBlockchainTimeToSpecificRelativeDay(relativeDay: number) {
@@ -96,7 +101,7 @@ function toBalanceChanges(tokenTransfer: TokenTransfer): BalanceChange[] {
   const addressFromBalanceChange: BalanceChange = {
     executionDay: tokenTransfer.executionDay,
     address: tokenTransfer.addressFrom,
-    amountChange: ZERO_BIG_NUMBER.sub(tokenTransfer.amount)
+    amountChange: 0n - tokenTransfer.amount
   };
   const addressToBalanceChange: BalanceChange = {
     executionDay: tokenTransfer.executionDay,
@@ -115,7 +120,7 @@ async function checkBalanceRecordsForAccount(
   if (expectedRecordArrayLength == 0) {
     const actualBalanceRecordState = await balanceTracker.readBalanceRecord(accountAddress, 0);
     const actualBalanceRecord = actualBalanceRecordState[0];
-    const actualRecordArrayLength: number = actualBalanceRecordState[1].toNumber();
+    const actualRecordArrayLength: number = Number(actualBalanceRecordState[1]);
     expect(actualRecordArrayLength).to.equal(
       expectedRecordArrayLength,
       `Wrong record balance array length for account ${accountAddress}. The array should be empty`
@@ -133,7 +138,7 @@ async function checkBalanceRecordsForAccount(
       const expectedBalanceRecord: BalanceRecord = expectedBalanceRecords[i];
       const actualBalanceRecordState = await balanceTracker.readBalanceRecord(accountAddress, i);
       const actualBalanceRecord = actualBalanceRecordState[0];
-      const actualRecordArrayLength: number = actualBalanceRecordState[1].toNumber();
+      const actualRecordArrayLength: number = Number(actualBalanceRecordState[1]);
       expect(actualRecordArrayLength).to.equal(
         expectedRecordArrayLength,
         `Wrong record balance array length for account ${accountAddress}`
@@ -153,11 +158,11 @@ async function checkBalanceRecordsForAccount(
 function applyBalanceChange(context: TestContext, balanceChange: BalanceChange): BalanceRecord | undefined {
   const { address, amountChange } = balanceChange;
   const { balanceByAddressMap, balanceRecordsByAddressMap } = context;
-  if (address == ZERO_ADDRESS || amountChange.eq(ZERO_BIG_NUMBER)) {
+  if (address === ZERO_ADDRESS || amountChange === 0n) {
     return undefined;
   }
-  const balance: BigNumber = balanceByAddressMap.get(address) ?? INIT_TOKEN_BALANCE;
-  balanceByAddressMap.set(address, balance.add(amountChange));
+  const balance: bigint = balanceByAddressMap.get(address) ?? INIT_TOKEN_BALANCE;
+  balanceByAddressMap.set(address, balance + amountChange);
   const balanceRecords: BalanceRecord[] = balanceRecordsByAddressMap.get(address) ?? [];
   let newBalanceRecord: BalanceRecord | undefined = {
     accountAddress: address,
@@ -184,10 +189,10 @@ function applyBalanceChange(context: TestContext, balanceChange: BalanceChange):
   return newBalanceRecord;
 }
 
-function defineExpectedDailyBalances(context: TestContext, dailyBalancesRequest: DailyBalancesRequest): BigNumber[] {
+function defineExpectedDailyBalances(context: TestContext, dailyBalancesRequest: DailyBalancesRequest): bigint[] {
   const { address, dayFrom, dayTo } = dailyBalancesRequest;
   const balanceRecords: BalanceRecord[] = context.balanceRecordsByAddressMap.get(address) ?? [];
-  const currentBalance: BigNumber = context.balanceByAddressMap.get(address) ?? ZERO_BIG_NUMBER;
+  const currentBalance: bigint = context.balanceByAddressMap.get(address) ?? ZERO_BIG_NUMBER;
   if (dayFrom < context.balanceTrackerInitDay) {
     throw new Error(
       `Cannot define daily balances because 'dayFrom' is less than the BalanceTracker init day. ` +
@@ -200,7 +205,7 @@ function defineExpectedDailyBalances(context: TestContext, dailyBalancesRequest:
       `The 'dayFrom' value: ${dayFrom}. The 'dayTo' value: ${dayTo}`
     );
   }
-  const dailyBalances: BigNumber[] = [];
+  const dailyBalances: bigint[] = [];
   if (balanceRecords.length === 0) {
     for (let day = dayFrom; day <= dayTo; ++day) {
       dailyBalances.push(currentBalance);
@@ -239,12 +244,12 @@ function defineExpectedDailyBalances(context: TestContext, dailyBalancesRequest:
  * deployment gas costs. If gas is required, it calculates the estimated gas amount and sends
  * enough ETH from the deployer's account to the special account to cover the deployment.
  */
-async function deployTokenMockFromSpecialAccount(deployer: SignerWithAddress): Promise<Contract> {
+async function deployTokenMockFromSpecialAccount(deployer: HardhatEthersSigner): Promise<Contract> {
   const tokenMockFactory: ContractFactory = await ethers.getContractFactory("ERC20MockForBalanceTracker");
   const specialPrivateKey = "0x00000000c39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
-  const wallet = new Wallet(specialPrivateKey, ethers.provider);
+  const wallet = new ethers.Wallet(specialPrivateKey, ethers.provider);
 
-  const txCount = await wallet.getTransactionCount();
+  const txCount = await ethers.provider.getTransactionCount(wallet.address);
   if (txCount !== 0) {
     throw new Error(
       "The special account has already sent transactions on this network. " +
@@ -253,12 +258,12 @@ async function deployTokenMockFromSpecialAccount(deployer: SignerWithAddress): P
       "of the first contract deployed by the special account."
     );
   }
-  const gasPrice: BigNumber = await ethers.provider.getGasPrice();
+  const gasPrice: bigint = (await ethers.provider.getFeeData()).gasPrice ?? 0n;
 
-  if (gasPrice.gt(0)) {
-    const deployTx = tokenMockFactory.connect(wallet).getDeployTransaction();
+  if (gasPrice > 0n) {
+    const deployTx = await tokenMockFactory.connect(wallet).getDeployTransaction();
     const gasEstimation = await ethers.provider.estimateGas(deployTx);
-    const ethAmount = gasEstimation.mul(gasPrice).mul(2);
+    const ethAmount = gasEstimation * gasPrice * 2n;
 
     await proveTx(deployer.sendTransaction({
       to: wallet.address,
@@ -266,20 +271,23 @@ async function deployTokenMockFromSpecialAccount(deployer: SignerWithAddress): P
     }));
   }
 
-  const tokenMock = await tokenMockFactory.connect(wallet).deploy();
-  await tokenMock.deployed();
+  const tokenMock = await tokenMockFactory.connect(wallet).deploy() as Contract;
+  await tokenMock.waitForDeployment();
 
-  return tokenMock.connect(deployer);
+  return connect(tokenMock, deployer);
 }
 
 describe("Contract 'BalanceTracker'", async () => {
-  const REVERT_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED = "Initializable: contract is already initialized";
+  // Error messages of the library contracts
+  const ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED = "Initializable: contract is already initialized";
 
-  const REVERT_ERROR_UNAUTHORIZED_CALLER = "UnauthorizedCaller";
-  const REVERT_ERROR_SAFE_CAST_OVERFLOW_UINT16 = "SafeCastOverflowUint16";
-  const REVERT_ERROR_SAFE_CAST_OVERFLOW_UINT240 = "SafeCastOverflowUint240";
-  const REVERT_ERROR_FROM_DAY_PRIOR_INIT_DAY = "FromDayPriorInitDay";
-  const REVERT_ERROR_TO_DAY_PRIOR_FROM_DAY = "ToDayPriorFromDay";
+  // Errors of the contract under test
+  const ERROR_NAME_FROM_DAY_PRIOR_INIT_DAY = "FromDayPriorInitDay";
+  const ERROR_NAME_TO_DAY_PRIOR_FROM_DAY = "ToDayPriorFromDay";
+  const ERROR_NAME_SAFE_CAST_OVERFLOW_UINT16 = "SafeCastOverflowUint16";
+  const ERROR_NAME_SAFE_CAST_OVERFLOW_UINT240 = "SafeCastOverflowUint240";
+  const ERROR_NAME_UNAUTHORIZED_CALLER = "UnauthorizedCaller";
+
   const EXPECTED_VERSION: Version = {
     major: 1,
     minor: 0,
@@ -288,10 +296,10 @@ describe("Contract 'BalanceTracker'", async () => {
 
   let balanceTrackerFactory: ContractFactory;
   let tokenMock: Contract;
-  let deployer: SignerWithAddress;
-  let attacker: SignerWithAddress;
-  let user1: SignerWithAddress;
-  let user2: SignerWithAddress;
+  let deployer: HardhatEthersSigner;
+  let attacker: HardhatEthersSigner;
+  let user1: HardhatEthersSigner;
+  let user2: HardhatEthersSigner;
 
   before(async () => {
     [deployer, attacker, user1, user2] = await ethers.getSigners();
@@ -304,22 +312,23 @@ describe("Contract 'BalanceTracker'", async () => {
     balanceTracker: Contract;
     balanceTrackerInitDay: number;
   }> {
-    const balanceTracker: Contract = await upgrades.deployProxy(balanceTrackerFactory.connect(deployer));
-    await balanceTracker.deployed();
-    await proveTx(balanceTracker.configureHarnessAdmin(deployer.address, true));
-    const txReceipt: TransactionReceipt = await balanceTracker.deployTransaction.wait();
-    const balanceTrackerInitDay = await getTxDayIndex(txReceipt);
+    const balanceTracker = await upgrades.deployProxy(balanceTrackerFactory);
+    await balanceTracker.waitForDeployment();
+    const tx = balanceTracker.deploymentTransaction()!;
+    const deploymentTimestamp = await getTxTimestamp(tx);
+    const balanceTrackerInitDay = toDayIndex(deploymentTimestamp);
+    await proveTx(connect(balanceTracker, deployer).configureHarnessAdmin(deployer.address, true));
     await proveTx(tokenMock.setBalance(user1.address, INIT_TOKEN_BALANCE));
     await proveTx(tokenMock.setBalance(user2.address, INIT_TOKEN_BALANCE));
     return {
-      balanceTracker,
+      balanceTracker: connect(balanceTracker, deployer),
       balanceTrackerInitDay
     };
   }
 
   async function initTestContext(): Promise<TestContext> {
     const { balanceTracker, balanceTrackerInitDay } = await setUpFixture(deployAndConfigureContracts);
-    const balanceByAddressMap: Map<string, BigNumber> = new Map();
+    const balanceByAddressMap: Map<string, bigint> = new Map();
     balanceByAddressMap.set(user1.address, INIT_TOKEN_BALANCE);
     balanceByAddressMap.set(user2.address, INIT_TOKEN_BALANCE);
     const balanceRecordsByAddressMap: Map<string, BalanceRecord[]> = new Map();
@@ -346,7 +355,7 @@ describe("Contract 'BalanceTracker'", async () => {
       previousTransferDay = transfer.executionDay;
 
       const tx: TransactionResponse = await tokenMock.simulateHookedTransfer(
-        balanceTracker.address,
+        getAddress(balanceTracker),
         transfer.addressFrom,
         transfer.addressTo,
         transfer.amount
@@ -384,8 +393,8 @@ describe("Contract 'BalanceTracker'", async () => {
     it("Configures the contract as expected", async () => {
       const { balanceTracker, balanceTrackerInitDay } = await setUpFixture(deployAndConfigureContracts);
       expect(await balanceTracker.NEGATIVE_TIME_SHIFT()).to.equal(NEGATIVE_TIME_SHIFT);
-      expect(await balanceTracker.TOKEN()).to.equal(tokenMock.address);
-      expect(await balanceTracker.token()).to.equal(tokenMock.address);
+      expect(await balanceTracker.TOKEN()).to.equal(getAddress(tokenMock));
+      expect(await balanceTracker.token()).to.equal(getAddress(tokenMock));
       expect(await balanceTracker.INITIALIZATION_DAY()).to.equal(balanceTrackerInitDay);
       expect(await balanceTracker.owner()).to.equal(deployer.address);
 
@@ -397,15 +406,15 @@ describe("Contract 'BalanceTracker'", async () => {
       const { balanceTracker } = await setUpFixture(deployAndConfigureContracts);
       await expect(
         balanceTracker.initialize()
-      ).to.be.revertedWith(REVERT_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
+      ).to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
     });
 
     it("Is reverted if the implementation contract is called even for the first time", async () => {
-      const balanceTrackerImplementation: Contract = await balanceTrackerFactory.deploy();
-      await balanceTrackerImplementation.deployed();
+      const balanceTrackerImplementation = await balanceTrackerFactory.deploy() as Contract;
+      await balanceTrackerImplementation.waitForDeployment();
       await expect(
         balanceTrackerImplementation.initialize()
-      ).to.be.revertedWith(REVERT_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
+      ).to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
     });
   });
 
@@ -445,7 +454,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: user1.address,
               addressTo: user2.address,
-              amount: BigNumber.from(123456789)
+              amount: 123456789n
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -457,7 +466,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: user1.address,
               addressTo: ZERO_ADDRESS,
-              amount: BigNumber.from(123456789)
+              amount: 123456789n
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -469,7 +478,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: ZERO_ADDRESS,
               addressTo: user2.address,
-              amount: BigNumber.from(123456789)
+              amount: 123456789n
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -497,7 +506,7 @@ describe("Contract 'BalanceTracker'", async () => {
             executionDay: context.balanceTrackerInitDay,
             addressFrom: user1.address,
             addressTo: user2.address,
-            amount: BigNumber.from(123456789)
+            amount: 123456789n
           };
           await checkTokenTransfers(context, [transfer]);
         });
@@ -511,13 +520,13 @@ describe("Contract 'BalanceTracker'", async () => {
             executionDay: nextDayAfterInit,
             addressFrom: user1.address,
             addressTo: user2.address,
-            amount: BigNumber.from(123456789)
+            amount: 123456789n
           };
           const transfer2: TokenTransfer = {
             executionDay: nextDayAfterInit,
             addressFrom: user2.address,
             addressTo: user1.address,
-            amount: BigNumber.from(987654321)
+            amount: 987654321n
           };
           await checkTokenTransfers(context, [transfer1, transfer2]);
         });
@@ -527,18 +536,19 @@ describe("Contract 'BalanceTracker'", async () => {
     describe("Is reverted if ", async () => {
       it("Is called not by a token", async () => {
         const context: TestContext = await initTestContext();
-        await expect(context.balanceTracker.connect(attacker).afterTokenTransfer(user1.address, user2.address, 123))
-          .to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_UNAUTHORIZED_CALLER)
+        await expect(connect(context.balanceTracker, attacker).afterTokenTransfer(user1.address, user2.address, 123))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_UNAUTHORIZED_CALLER)
           .withArgs(attacker.address);
       });
 
       describe("A token transfer happens not on the initialization day and the amount is non-zero and", async () => {
         it("The initial token balance is greater than 240-bit unsigned value", async () => {
           const context: TestContext = await initTestContext();
+          const wrongValue = maxUintForBits(240) + 1n;
           await proveTx(
             tokenMock.setBalance(
               user1.address,
-              BigNumber.from("0x1000000000000000000000000000000000000000000000000000000000000")
+              wrongValue
             )
           );
 
@@ -546,28 +556,31 @@ describe("Contract 'BalanceTracker'", async () => {
 
           await expect(
             tokenMock.simulateHookedTransfer(
-              context.balanceTracker.address,
+              getAddress(context.balanceTracker),
               user1.address,
               user2.address,
               1
             )
-          ).to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_SAFE_CAST_OVERFLOW_UINT240);
+          ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_SAFE_CAST_OVERFLOW_UINT240);
         });
 
-        it("The transfer day index is greater than 65536", async () => {
+        it("The transfer day index is greater than 16-bit unsigned value", async () => {
           const context: TestContext = await initTestContext();
 
+          // The second `+ 1n` is because a balance records are created for a previous day, not the current one
+          const wrongDayIndex = maxUintForBits(16) + 1n + 1n;
+
           await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(false));
-          await proveTx(context.balanceTracker.setBlockTimestamp(65537, NEGATIVE_TIME_SHIFT));
+          await proveTx(context.balanceTracker.setBlockTimestamp(wrongDayIndex, NEGATIVE_TIME_SHIFT));
 
           await expect(
             tokenMock.simulateHookedTransfer(
-              context.balanceTracker.address,
+              getAddress(context.balanceTracker),
               user1.address,
               user2.address,
               1
             )
-          ).to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_SAFE_CAST_OVERFLOW_UINT16);
+          ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_SAFE_CAST_OVERFLOW_UINT16);
 
           await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(true));
         });
@@ -579,8 +592,8 @@ describe("Contract 'BalanceTracker'", async () => {
     describe("Is reverted if ", async () => {
       it("Is called not by a token", async () => {
         const context: TestContext = await initTestContext();
-        await expect(context.balanceTracker.connect(attacker).beforeTokenTransfer(user1.address, user2.address, 123))
-          .to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_UNAUTHORIZED_CALLER)
+        await expect(connect(context.balanceTracker, attacker).beforeTokenTransfer(user1.address, user2.address, 123))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_UNAUTHORIZED_CALLER)
           .withArgs(attacker.address);
       });
     });
@@ -595,22 +608,22 @@ describe("Contract 'BalanceTracker'", async () => {
         dayTo: number
       ) {
         await executeTokenTransfers(context, tokenTransfers);
-        const expectedDailyBalancesForUser1: BigNumber[] = defineExpectedDailyBalances(context, {
+        const expectedDailyBalancesForUser1: bigint[] = defineExpectedDailyBalances(context, {
           address: user1.address,
           dayFrom,
           dayTo
         });
-        const expectedDailyBalancesForUser2: BigNumber[] = defineExpectedDailyBalances(context, {
+        const expectedDailyBalancesForUser2: bigint[] = defineExpectedDailyBalances(context, {
           address: user2.address,
           dayFrom,
           dayTo
         });
-        const actualDailyBalancesForUser1: BigNumber[] = await context.balanceTracker.getDailyBalances(
+        const actualDailyBalancesForUser1: bigint[] = await context.balanceTracker.getDailyBalances(
           user1.address,
           dayFrom,
           dayTo
         );
-        const actualDailyBalancesForUser2: BigNumber[] = await context.balanceTracker.getDailyBalances(
+        const actualDailyBalancesForUser2: bigint[] = await context.balanceTracker.getDailyBalances(
           user2.address,
           dayFrom,
           dayTo
@@ -624,19 +637,19 @@ describe("Contract 'BalanceTracker'", async () => {
           executionDay: firstTransferDay,
           addressFrom: user1.address,
           addressTo: user2.address,
-          amount: BigNumber.from(123456789)
+          amount: 123456789n
         };
         const transfer2: TokenTransfer = {
           executionDay: firstTransferDay + 3,
           addressFrom: user2.address,
           addressTo: user1.address,
-          amount: BigNumber.from(987654321)
+          amount: 987654321n
         };
         const transfer3: TokenTransfer = {
           executionDay: firstTransferDay + 7,
           addressFrom: user1.address,
           addressTo: user2.address,
-          amount: BigNumber.from(987654320 / 2)
+          amount: 987654320n / 2n
         };
         if (numberOfTransfers > 3 || numberOfTransfers < 1) {
           throw Error(`Invalid number of transfers: ${numberOfTransfers}`);
@@ -1066,7 +1079,7 @@ describe("Contract 'BalanceTracker'", async () => {
         const dayTo = context.balanceTrackerInitDay + 1;
         await expect(
           context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo)
-        ).to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_FROM_DAY_PRIOR_INIT_DAY);
+        ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_FROM_DAY_PRIOR_INIT_DAY);
       });
 
       it("The 'to' day is prior the 'from' day", async () => {
@@ -1075,7 +1088,7 @@ describe("Contract 'BalanceTracker'", async () => {
         const dayTo = context.balanceTrackerInitDay + 1;
         await expect(
           context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo)
-        ).to.be.revertedWithCustomError(context.balanceTracker, REVERT_ERROR_TO_DAY_PRIOR_FROM_DAY);
+        ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_TO_DAY_PRIOR_FROM_DAY);
       });
     });
   });
