@@ -105,10 +105,10 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Constructor ----------------------------- //
 
     /**
-     * @notice Constructor that prohibits the initialization of the implementation of the upgradable contract
+     * @dev Constructor that prohibits the initialization of the implementation of the upgradeable contract.
      *
-     * See details
-     * https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable#initializing_the_implementation_contract
+     * See details:
+     * https://docs.openzeppelin.com/upgrades-plugins/writing-upgradeable#initializing_the_implementation_contract
      *
      * @custom:oz-upgrades-unsafe-allow constructor
      */
@@ -119,9 +119,9 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Initializers ---------------------------- //
 
     /**
-     * @notice The initializer of the upgradable contract
+     * @dev The initialize function of the upgradeable contract.
      *
-     * See details https://docs.openzeppelin.com/upgrades-plugins/1.x/writing-upgradeable
+     * See details: https://docs.openzeppelin.com/upgrades-plugins/writing-upgradeable
      */
     function initialize() external virtual initializer {
         __Ownable_init_unchained();
