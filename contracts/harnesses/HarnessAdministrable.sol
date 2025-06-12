@@ -52,7 +52,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
         _;
     }
 
-    // ------------------ Transactional functions  ---------------- //
+    // ------------------ Transactional functions ----------------- //
 
     /**
      * @notice Updates configuration of a harness admin
@@ -70,7 +70,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
         _configureHarnessAdmin(account, newStatus);
     }
 
-    // ------------------ View functions  ------------------------- //
+    // ------------------ View functions -------------------------- //
 
     /**
      * @notice Checks if an account is a harness admin
@@ -82,7 +82,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
         return _isHarnessAdmin(account);
     }
 
-    // ------------------ Internal functions  --------------------- //
+    // ------------------ Internal functions ---------------------- //
 
     /**
      * @notice Updates configuration of a harness admin internally
