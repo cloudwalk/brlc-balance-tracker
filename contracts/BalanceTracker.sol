@@ -12,7 +12,7 @@ import { Versionable } from "./base/Versionable.sol";
 /**
  * @title BalanceTracker contract
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @notice The contract that keeps track of the token balance for each account on a daily basis
+ * @notice The contract that tracks token balances for each account on a daily basis
  */
 contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Versionable {
     // ------------------ Types ----------------------------------- //
@@ -64,12 +64,12 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Errors ---------------------------------- //
 
     /**
-     * @notice Thrown when the specified "from" day is prior the contract initialization day
+     * @notice Thrown when the specified "from" day is prior to the contract initialization day
      */
     error FromDayPriorInitDay();
 
     /**
-     * @notice Thrown when the specified "to" day is prior the specified "from" day
+     * @notice Thrown when the specified "to" day is prior to the specified "from" day
      */
     error ToDayPriorFromDay();
 
@@ -215,7 +215,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         uint256 recordIndex = _balanceRecords[account].length;
         if (recordIndex == 0) {
             /**
-             * There is no records for an account.
+             * There are no records for an account.
              * Therefore get the actual balance of the account directly from
              * the token contract and set the `day` variable outside the requested range
              */

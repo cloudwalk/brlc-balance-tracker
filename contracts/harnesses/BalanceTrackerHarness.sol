@@ -8,7 +8,7 @@ import { HarnessAdministrable } from "./HarnessAdministrable.sol";
 /**
  * @title BalanceTrackerHarness contract
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @notice The same as {BalanceTracker} but with the new functions of setting internal variables for testing
+ * @notice The same as {BalanceTracker} but with additional functions for setting internal variables for testing
  * @custom:oz-upgrades-unsafe-allow missing-initializer
  */
 contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
@@ -37,7 +37,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
-     * @notice Adds a new balance record to the chronological array of an account
+     * @notice Adds a new balance record to the chronological array for an account
      *
      * @param account The address of the account to add the balance record for
      * @param day The creation day of the new record
@@ -48,7 +48,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
-     * @notice Sets the balance record chronological array for an account according to provided array
+     * @notice Sets the balance record chronological array for an account according to the provided array
      *
      * @param account The address of the account to set the balance record array for
      * @param balanceRecords The array of new records to set
@@ -71,7 +71,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
-     * @notice Sets the current block time that should be used by the contract in certain conditions
+     * @notice Sets the current block timestamp that should be used by the contract under certain conditions
      *
      * @param day The new day index starting from the Unix epoch to set
      * @param time The new time in seconds starting from the beginning of the day to set
@@ -83,9 +83,9 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
-     * @notice Sets the boolean variable that defines whether the real block time is used in the contract
+     * @notice Sets the boolean variable that defines whether real block timestamps are used in the contract
      *
-     * @param newValue The new value. If true the real block time is used. Otherwise previously set time is used
+     * @param newValue The new value. If true, real block timestamps are used. Otherwise, previously set ones are used
      */
     function setUsingRealBlockTimestamps(bool newValue) external onlyOwner {
         BalanceTrackerHarnessState storage state = _getBalanceTrackerHarnessState();
@@ -96,7 +96,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     // ------------------ View functions -------------------------- //
 
     /**
-     * @notice Returns the boolean value that defines whether the real block time is used in the contract or not
+     * @notice Returns the boolean value that defines whether real block timestamps are used in the contract
      */
     function getUsingRealBlockTimestamps() external view returns (bool) {
         BalanceTrackerHarnessState storage state = _getBalanceTrackerHarnessState();
@@ -104,7 +104,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     }
 
     /**
-     * @notice Returns the internal state variable that defines the block timestamp if real time is not used
+     * @notice Returns the internal state variable that defines the block timestamp when real timestamps are not used
      */
     function getCurrentBlockTimestamp() external view returns (uint256) {
         BalanceTrackerHarnessState storage state = _getBalanceTrackerHarnessState();
@@ -113,7 +113,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
 
     // ------------------ Internal functions ---------------------- //
 
-    /// @notice Returns the block timestamp according to the contract settings: the real time or a previously set time
+    /// @notice Returns the block timestamp according to the contract settings: real timestamp or a previously set one
     function _blockTimestamp() internal view virtual override returns (uint256) {
         BalanceTrackerHarnessState storage state = _getBalanceTrackerHarnessState();
         if (state.usingRealBlockTimestamps || !state.initialized) {
