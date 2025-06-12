@@ -177,7 +177,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      */
     function beforeTokenTransfer(address from, address to, uint256 amount) external override onlyToken {}
 
-    // ------------------ View functions  ------------------------- //
+    // ------------------ View functions -------------------------- //
 
     /**
      * @notice Reads the balance record array
@@ -281,7 +281,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
         return TOKEN;
     }
 
-    // ------------------ Internal functions  --------------------- //
+    // ------------------ Internal functions ---------------------- //
 
     /**
      * @notice Returns the current block timestamp with the time shift

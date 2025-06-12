@@ -25,7 +25,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
     /// @dev It is the same as keccak256("balance tracker harness storage slot")
     bytes32 private constant _STORAGE_SLOT = 0xceb91ca8f20e7d3bc24614515796ccaa88bb45ed0206676ef6d6620478090c43;
 
-    // ------------------ Transactional functions  ---------------- //
+    // ------------------ Transactional functions ----------------- //
 
     /**
      * @notice Sets the initialization day of the balance tracker
@@ -93,7 +93,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
         state.initialized = true;
     }
 
-    // ------------------ View functions  ------------------------- //
+    // ------------------ View functions -------------------------- //
 
     /**
      * @notice Returns the boolean value that defines whether the real block time is used in the contract or not
@@ -111,7 +111,7 @@ contract BalanceTrackerHarness is BalanceTracker, HarnessAdministrable {
         return state.currentBlockTimestamp;
     }
 
-    // ------------------ Internal functions  --------------------- //
+    // ------------------ Internal functions ---------------------- //
 
     /// @notice Returns the block timestamp according to the contract settings: the real time or a previously set time
     function _blockTimestamp() internal view virtual override returns (uint256) {

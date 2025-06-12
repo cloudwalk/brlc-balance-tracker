@@ -15,7 +15,7 @@ contract ERC20MockForBalanceTracker {
     uint256 internal _totalSupply;
     mapping(address => uint256) internal _balances;
 
-    // ------------------ Transactional functions  ---------------- //
+    // ------------------ Transactional functions ----------------- //
 
     function setBalance(address account, uint256 amount) external {
         _totalSupply -= _balances[account];
@@ -38,7 +38,7 @@ contract ERC20MockForBalanceTracker {
         BalanceTracker(balanceTracker).afterTokenTransfer(from, to, amount);
     }
 
-    // ------------------ View functions  ------------------------- //
+    // ------------------ View functions -------------------------- //
 
     function totalSupply() public view returns (uint256) {
         return _totalSupply;
