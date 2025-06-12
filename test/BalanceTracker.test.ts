@@ -408,17 +408,15 @@ describe("Contract 'BalanceTracker'", async () => {
 
     it("Is reverted if called for the second time", async () => {
       const { balanceTracker } = await setUpFixture(deployAndConfigureContracts);
-      await expect(
-        balanceTracker.initialize()
-      ).to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
+      await expect(balanceTracker.initialize())
+        .to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
     });
 
     it("Is reverted if the implementation contract is called even for the first time", async () => {
       const balanceTrackerImplementation = await balanceTrackerFactory.deploy() as Contract;
       await balanceTrackerImplementation.waitForDeployment();
-      await expect(
-        balanceTrackerImplementation.initialize()
-      ).to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
+      await expect(balanceTrackerImplementation.initialize())
+        .to.be.revertedWith(ERROR_MESSAGE_INITIALIZABLE_CONTRACT_IS_ALREADY_INITIALIZED);
     });
   });
 
@@ -1081,18 +1079,16 @@ describe("Contract 'BalanceTracker'", async () => {
         const context: TestContext = await initTestContext();
         const dayFrom = context.balanceTrackerInitDay - 1;
         const dayTo = context.balanceTrackerInitDay + 1;
-        await expect(
-          context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo)
-        ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_FROM_DAY_PRIOR_INIT_DAY);
+        await expect(context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_FROM_DAY_PRIOR_INIT_DAY);
       });
 
       it("The 'to' day is prior the 'from' day", async () => {
         const context: TestContext = await initTestContext();
         const dayFrom = context.balanceTrackerInitDay + 2;
         const dayTo = context.balanceTrackerInitDay + 1;
-        await expect(
-          context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo)
-        ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_TO_DAY_PRIOR_FROM_DAY);
+        await expect(context.balanceTracker.getDailyBalances(user1.address, dayFrom, dayTo))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_TO_DAY_PRIOR_FROM_DAY);
       });
     });
   });
@@ -1207,12 +1203,9 @@ describe("Contract 'BalanceTracker'", async () => {
 
       it("Is reverted if called not by a harness admin", async () => {
         const context: TestContext = await initTestContext();
-        await expect(
-          connect(context.balanceTracker, attacker).setBalanceRecords(accountAddress, balanceRecordsRaw)
-        ).to.be.revertedWithCustomError(
-          context.balanceTracker,
-          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
-        ).withArgs(attacker.address);
+        await expect(connect(context.balanceTracker, attacker).setBalanceRecords(accountAddress, balanceRecordsRaw))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN)
+          .withArgs(attacker.address);
       });
     });
 
@@ -1229,12 +1222,9 @@ describe("Contract 'BalanceTracker'", async () => {
 
       it("Is reverted if called not by a harness admin", async () => {
         const context: TestContext = await initTestContext();
-        await expect(
-          connect(context.balanceTracker, attacker).deleteBalanceRecords(accountAddress)
-        ).to.be.revertedWithCustomError(
-          context.balanceTracker,
-          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
-        ).withArgs(attacker.address);
+        await expect(connect(context.balanceTracker, attacker).deleteBalanceRecords(accountAddress))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN)
+          .withArgs(attacker.address);
       });
     });
 
@@ -1260,12 +1250,9 @@ describe("Contract 'BalanceTracker'", async () => {
 
       it("Is reverted if called not by a harness admin", async () => {
         const context: TestContext = await initTestContext();
-        await expect(
-          connect(context.balanceTracker, attacker).setBlockTimestamp(day, time)
-        ).to.be.revertedWithCustomError(
-          context.balanceTracker,
-          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
-        ).withArgs(attacker.address);
+        await expect(connect(context.balanceTracker, attacker).setBlockTimestamp(day, time))
+          .to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN)
+          .withArgs(attacker.address);
       });
     });
 
