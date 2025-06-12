@@ -18,6 +18,9 @@ const NEGATIVE_TIME_SHIFT = 3 * HOUR_IN_SECONDS;
 const ZERO_ADDRESS = ethers.ZeroAddress;
 const ZERO_BIG_NUMBER = 0n;
 const INIT_TOKEN_BALANCE: bigint = 1000_000_000_000n;
+const MAX_UINT16 = 2 ** 16 - 1;
+const OVERFLOW_UINT16 = 2 ** 16;
+const OVERFLOW_UINT240 = 2n ** 240n;
 
 interface BalanceRecord {
   accountAddress: string;
@@ -81,10 +84,6 @@ function toDayAndTime(timestampInSeconds: number): { dayIndex: number; secondsOf
 function toDayIndex(timestampInSeconds: number): number {
   const { dayIndex } = toDayAndTime(timestampInSeconds);
   return dayIndex;
-}
-
-export function maxUintForBits(numberOfBits: number): bigint {
-  return 2n ** BigInt(numberOfBits) - 1n;
 }
 
 async function increaseBlockchainTimeToSpecificRelativeDay(relativeDay: number) {
@@ -549,7 +548,7 @@ describe("Contract 'BalanceTracker'", async () => {
       describe("A token transfer happens not on the initialization day and the amount is non-zero and", async () => {
         it("The initial token balance is greater than 240-bit unsigned value", async () => {
           const context: TestContext = await initTestContext();
-          const wrongValue = maxUintForBits(240) + 1n;
+          const wrongValue = (OVERFLOW_UINT240);
           await proveTx(
             tokenMock.setBalance(
               user1.address,
@@ -572,8 +571,8 @@ describe("Contract 'BalanceTracker'", async () => {
         it("The transfer day index is greater than 16-bit unsigned value", async () => {
           const context: TestContext = await initTestContext();
 
-          // The second `+ 1n` is because a balance records are created for a previous day, not the current one
-          const wrongDayIndex = maxUintForBits(16) + 1n + 1n;
+          // `+1n` is because a balance records are created for a previous day, not the current one
+          const wrongDayIndex = OVERFLOW_UINT16 + 1;
 
           await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(false));
           await proveTx(context.balanceTracker.setBlockTimestamp(wrongDayIndex, NEGATIVE_TIME_SHIFT));
@@ -1154,7 +1153,7 @@ describe("Contract 'BalanceTracker'", async () => {
         const context: TestContext = await initTestContext();
 
         const oldInitializationDay = await context.balanceTracker.INITIALIZATION_DAY();
-        const newInitializationDay = maxUintForBits(16);
+        const newInitializationDay = MAX_UINT16;
         expect(oldInitializationDay).not.to.equal(newInitializationDay);
 
         await proveTx(context.balanceTracker.setInitializationDay(newInitializationDay));
