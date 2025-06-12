@@ -9,8 +9,8 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @notice Provides the harness admin role for accounts to restrict access to some function of descendant contracts
  * @dev This contract is used through inheritance. It makes available the modifier `onlyHarnessAdmin`,
- * which can be applied to functions to restrict their usage
- * @dev This contract use a pseudo random storage slot to save its state, so no storage layout control is needed
+ * which can be applied to functions to restrict their usage.
+ * This contract use a pseudo random storage slot to save its state, so no storage layout control is needed
  * @custom:oz-upgrades-unsafe-allow missing-initializer
  */
 abstract contract HarnessAdministrable is OwnableUpgradeable {
