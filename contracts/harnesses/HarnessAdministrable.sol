@@ -6,13 +6,16 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 
 /**
  * @title HarnessAdministrable contract
- * @author CloudWalk Inc. (See https://cloudwalk.io)
- * @notice Provides the harness admin role for accounts to restrict access to some function of descendant contracts
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
+ * @notice Provides the harness admin role for accounts to restrict access to some functions of descendant contracts
  * @dev This contract is used through inheritance. It makes available the modifier `onlyHarnessAdmin`,
- * which can be applied to functions to restrict their usage
- * @dev This contract use a pseudo random storage slot to save its state, so no storage layout control is needed
+ * which can be applied to functions to restrict their usage.
+ * This contract uses a pseudo-random storage slot to save its state, so no storage layout control is needed
+ * @custom:oz-upgrades-unsafe-allow missing-initializer
  */
 abstract contract HarnessAdministrable is OwnableUpgradeable {
+    // ------------------ Storage layout -------------------------- //
+
     /// @notice The structure with the contract state
     struct HarnessAdministrableState {
         mapping(address => bool) harnessAdminStatuses;
@@ -22,7 +25,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
     /// @dev It is the same as keccak256("harness administrable storage slot")
     bytes32 private constant _STORAGE_SLOT = 0xfe59a931f94e2aa9825bd975f0e041e1561aab13eea3c8ef2be9da7a34db16e2;
 
-    // ----------------------- Events ------------------------------------------
+    // ------------------ Events ---------------------------------- //
 
     /**
      * @notice Emitted when configuration of a harness admin is updated
@@ -32,7 +35,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
      */
     event HarnessAdminConfigured(address indexed harnessAdmin, bool status);
 
-    // ----------------------- Errors ------------------------------------------
+    // ------------------ Errors ---------------------------------- //
 
     /**
      * @notice The transaction sender is not a harness admin
@@ -41,7 +44,7 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
      */
     error UnauthorizedHarnessAdmin(address account);
 
-    // ----------------------- Modifiers ---------------------------------------
+    // ------------------ Modifiers ------------------------------- //
 
     /// @notice Throws if called by any account other than a harness admin
     modifier onlyHarnessAdmin() {
@@ -49,7 +52,8 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
         _;
     }
 
-    // ----------------------- Functions ---------------------------------------
+    // ------------------ Transactional functions ----------------- //
+
     /**
      * @notice Updates configuration of a harness admin
      *
@@ -66,6 +70,8 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
         _configureHarnessAdmin(account, newStatus);
     }
 
+    // ------------------ View functions -------------------------- //
+
     /**
      * @notice Checks if an account is a harness admin
      *
@@ -75,6 +81,8 @@ abstract contract HarnessAdministrable is OwnableUpgradeable {
     function isHarnessAdmin(address account) external view returns (bool) {
         return _isHarnessAdmin(account);
     }
+
+    // ------------------ Internal functions ---------------------- //
 
     /**
      * @notice Updates configuration of a harness admin internally

@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 
 /**
  * @title IBalanceTracker interface
- * @author CloudWalk Inc. (See https://cloudwalk.io)
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @notice The interface of a contract that tracks daily token balances
  */
 interface IBalanceTracker {

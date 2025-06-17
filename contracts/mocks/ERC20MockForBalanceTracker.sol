@@ -6,25 +6,21 @@ import { BalanceTracker } from "../BalanceTracker.sol";
 
 /**
  * @title ERC20MockForBalanceTracker contract
- * @author CloudWalk Inc. (See https://cloudwalk.io)
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @notice A simplified implementation of the ERC20 token contract for testing the BalanceTracker contract
  */
 contract ERC20MockForBalanceTracker {
+    // ------------------ Storage --------------------------------- //
+
     uint256 internal _totalSupply;
     mapping(address => uint256) internal _balances;
+
+    // ------------------ Transactional functions ----------------- //
 
     function setBalance(address account, uint256 amount) external {
         _totalSupply -= _balances[account];
         _balances[account] = amount;
         _totalSupply += amount;
-    }
-
-    function totalSupply() public view returns (uint256) {
-        return _totalSupply;
-    }
-
-    function balanceOf(address account) public view returns (uint256) {
-        return _balances[account];
     }
 
     function simulateHookedTransfer(address balanceTracker, address from, address to, uint256 amount) external {
@@ -40,5 +36,15 @@ contract ERC20MockForBalanceTracker {
             _totalSupply += amount;
         }
         BalanceTracker(balanceTracker).afterTokenTransfer(from, to, amount);
+    }
+
+    // ------------------ View functions -------------------------- //
+
+    function totalSupply() public view returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view returns (uint256) {
+        return _balances[account];
     }
 }
