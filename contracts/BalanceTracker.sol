@@ -132,9 +132,10 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     /**
      * @inheritdoc IERC20Hook
      *
-     * @dev Can only be called by the hooked token contract
-     * @dev Emits an {BalanceRecordCreated} event for `from` account
-     * @dev Emits an {BalanceRecordCreated} event for `to` account
+     * @dev Requirement: Can only be called by the hooked token contract.
+     *
+     * Emits an {BalanceRecordCreated} event for `from` account.
+     * Emits an {BalanceRecordCreated} event for `to` account.
      */
     function afterTokenTransfer(address from, address to, uint256 amount) external override onlyToken {
         if (amount == 0) return;
@@ -168,9 +169,10 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     /**
      * @inheritdoc IERC20Hook
      *
-     * @dev Can only be called by the hooked token contract
-     * @dev Emits an {BalanceRecordCreated} event for `from` account
-     * @dev Emits an {BalanceRecordCreated} event for `to` account
+     * @dev Requirement: Can only be called by the hooked token contract.
+     *
+     * Emits an {BalanceRecordCreated} event for `from` account.
+     * Emits an {BalanceRecordCreated} event for `to` account.
      */
     function beforeTokenTransfer(address from, address to, uint256 amount) external override onlyToken {}
 
