@@ -12,16 +12,15 @@ import { Versionable } from "./base/Versionable.sol";
 /**
  * @title BalanceTracker contract
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @notice The contract that tracks token balances for each account on a daily basis
+ * @dev The contract that tracks token balances for each account on a daily basis.
  */
 contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Versionable {
     // ------------------ Types ----------------------------------- //
 
     /**
-     * @notice The day-value pair
-     *
-     * @param day The index of the day
-     * @param value The value associated with the day
+     * @dev The day-value pair.
+     * @param day The index of the day.
+     * @param value The value associated with the day.
      */
     struct Record {
         uint16 day;
@@ -30,70 +29,68 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
 
     // ------------------ Constants ------------------------------- //
 
-    /// @notice The time shift of a day in seconds
+    /// @dev The time shift of a day in seconds.
     uint256 public constant NEGATIVE_TIME_SHIFT = 3 hours;
 
-    /// @notice The address of the hooked token contract
+    /// @dev The address of the hooked token contract.
     address public constant TOKEN = address(0x1b470f79D29839dBCCa9c61c06941E27B3aFbF6d);
 
     // ------------------ Storage --------------------------------- //
 
-    /// @notice The index of the initialization day
+    /// @dev The index of the initialization day.
     uint16 public INITIALIZATION_DAY;
 
-    /// @notice The mapping of an account to daily balance records
+    /// @dev The mapping of an account to daily balance records.
     mapping(address => Record[]) public _balanceRecords;
 
     /**
      * @dev This empty reserved space is put in place to allow future versions
-     * to add new variables without shifting down storage in the inheritance chain
+     * to add new variables without shifting down storage in the inheritance chain.
      */
     uint256[48] private __gap;
 
     // ------------------ Events ---------------------------------- //
 
     /**
-     * @notice Emitted when a new balance record is created
-     *
-     * @param account The address of the account
-     * @param day The index of the day
-     * @param balance The balance associated with the day
+     * @dev Emitted when a new balance record is created.
+     * @param account The address of the account.
+     * @param day The index of the day.
+     * @param balance The balance associated with the day.
      */
     event BalanceRecordCreated(address indexed account, uint16 day, uint240 balance);
 
     // ------------------ Errors ---------------------------------- //
 
     /**
-     * @notice Thrown when the specified "from" day is prior to the contract initialization day
+     * @dev Thrown when the specified "from" day is prior to the contract initialization day.
      */
     error FromDayPriorInitDay();
 
     /**
-     * @notice Thrown when the specified "to" day is prior to the specified "from" day
+     * @dev Thrown when the specified "to" day is prior to the specified "from" day.
      */
     error ToDayPriorFromDay();
 
     /**
-     * @notice Thrown when the value does not fit in the type uint16
+     * @dev Thrown when the value does not fit in the type uint16.
      */
     error SafeCastOverflowUint16();
 
     /**
-     * @notice Thrown when the value does not fit in the type uint240
+     * @dev Thrown when the value does not fit in the type uint240.
      */
     error SafeCastOverflowUint240();
 
     /**
-     * @notice Thrown when the caller is not the token contract
-     *
-     * @param account The address of the caller
+     * @dev Thrown when the caller is not the token contract.
+     * @param account The address of the caller.
      */
     error UnauthorizedCaller(address account);
 
     // ------------------ Modifiers ------------------------------- //
 
     /**
-     * @notice Throws if called by any account other than the token contract
+     * @dev Throws if called by any account other than the token contract.
      */
     modifier onlyToken() {
         if (_msgSender() != TOKEN) {
@@ -105,7 +102,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Constructor ----------------------------- //
 
     /**
-     * @notice Constructor that prohibits the initialization of the implementation of the upgradeable contract
+     * @dev Constructor that prohibits the initialization of the implementation of the upgradeable contract.
      *
      * See details:
      * https://docs.openzeppelin.com/upgrades-plugins/writing-upgradeable#initializing_the_implementation_contract
@@ -119,7 +116,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Initializers ---------------------------- //
 
     /**
-     * @notice The initialize function of the upgradeable contract
+     * @dev The initialize function of the upgradeable contract.
      *
      * See details: https://docs.openzeppelin.com/upgrades-plugins/writing-upgradeable
      */
@@ -180,10 +177,9 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ View functions -------------------------- //
 
     /**
-     * @notice Reads the balance record array
-     *
-     * @param index The index of the record to read
-     * @return The record at the specified index and the length of array
+     * @dev Reads the balance record array.
+     * @param index The index of the record to read.
+     * @return The record at the specified index and the length of array.
      */
     function readBalanceRecord(address account, uint256 index) external view returns (Record memory, uint256) {
         uint256 len = _balanceRecords[account].length;
@@ -284,7 +280,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ Internal functions ---------------------- //
 
     /**
-     * @notice Returns the current block timestamp with the time shift
+     * @dev Returns the current block timestamp with the time shift.
      */
     function _blockTimestamp() internal view virtual returns (uint256) {
         return block.timestamp - NEGATIVE_TIME_SHIFT;
@@ -292,7 +288,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
 
     /**
      * @dev Returns the downcasted uint240 from uint256, reverting on
-     * overflow (when the input is greater than largest uint240)
+     * overflow (when the input is greater than largest uint240).
      */
     function _toUint240(uint256 value) internal pure returns (uint240) {
         if (value > type(uint240).max) {
@@ -304,7 +300,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
 
     /**
      * @dev Returns the downcasted uint16 from uint256, reverting on
-     * overflow (when the input is greater than largest uint16)
+     * overflow (when the input is greater than largest uint16).
      */
     function _toUint16(uint256 value) internal pure returns (uint16) {
         if (value > type(uint16).max) {

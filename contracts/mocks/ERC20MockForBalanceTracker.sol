@@ -7,7 +7,7 @@ import { BalanceTracker } from "../BalanceTracker.sol";
 /**
  * @title ERC20MockForBalanceTracker contract
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @notice A simplified implementation of the ERC20 token contract for testing the BalanceTracker contract
+ * @dev A simplified implementation of the ERC20 token contract for testing the BalanceTracker contract.
  */
 contract ERC20MockForBalanceTracker {
     // ------------------ Storage --------------------------------- //
