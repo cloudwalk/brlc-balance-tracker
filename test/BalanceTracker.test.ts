@@ -316,7 +316,11 @@ describe("Contract 'BalanceTracker'", async () => {
     balanceTracker: Contract;
     balanceTrackerInitDay: number;
   }> {
-    const balanceTracker = await upgrades.deployProxy(balanceTrackerFactory);
+    const balanceTracker = await upgrades.deployProxy(
+      balanceTrackerFactory,
+      [],
+      { unsafeSkipProxyAdminCheck: true } // This is necessary to run tests on other networks
+    );
     await balanceTracker.waitForDeployment();
     const tx = balanceTracker.deploymentTransaction()!;
     const deploymentTimestamp = await getTxTimestamp(tx);
