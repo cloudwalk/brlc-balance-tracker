@@ -16,18 +16,6 @@ import { Versionable } from "./base/Versionable.sol";
  * @dev The contract that tracks token balances for each account on a daily basis.
  */
 contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Versionable {
-    // ------------------ Types ----------------------------------- //
-
-    /**
-     * @dev The day-value pair.
-     * @param day The index of the day.
-     * @param value The value associated with the day.
-     */
-    struct Record {
-        uint16 day;
-        uint240 value;
-    }
-
     // ------------------ Constants ------------------------------- //
 
     /// @dev The time shift of a day in seconds.
@@ -142,9 +130,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     // ------------------ View functions -------------------------- //
 
     /**
-     * @dev Reads the balance record array.
-     * @param index The index of the record to read.
-     * @return The record at the specified index and the length of array.
+     * @inheritdoc IBalanceTrackerPrimary
      */
     function readBalanceRecord(address account, uint256 index) external view returns (Record memory, uint256) {
         uint256 len = _balanceRecords[account].length;

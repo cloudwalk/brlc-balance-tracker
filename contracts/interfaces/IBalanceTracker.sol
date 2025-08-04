@@ -8,6 +8,18 @@ pragma solidity 0.8.16;
  * @dev The primary interface of a contract that tracks daily token balances.
  */
 interface IBalanceTrackerPrimary {
+    // ------------------ Types ----------------------------------- //
+
+    /**
+     * @dev The day-value pair.
+     * @param day The index of the day.
+     * @param value The value associated with the day.
+     */
+    struct Record {
+        uint16 day;
+        uint240 value;
+    }
+
     // ------------------ Events ---------------------------------- //
 
     /**
@@ -17,6 +29,15 @@ interface IBalanceTrackerPrimary {
      * @param balance The balance associated with the day.
      */
     event BalanceRecordCreated(address indexed account, uint16 day, uint240 balance);
+
+    // ------------------ View functions -------------------------- //
+
+    /**
+     * @dev Reads the balance record array.
+     * @param index The index of the record to read.
+     * @return The record at the specified index and the length of array.
+     */
+    function readBalanceRecord(address account, uint256 index) external view returns (Record memory, uint256);
 
     /**
      * @dev Returns the daily balances for the specified account and period.
