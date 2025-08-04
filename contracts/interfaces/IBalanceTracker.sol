@@ -59,15 +59,6 @@ interface IBalanceTrackerPrimary {
 }
 
 /**
- * @title IBalanceTrackerConfiguration interface
- * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @dev The configuration part of the balance tracker smart contract interface.
- */
-interface IBalanceTrackerConfiguration {
-
-}
-
-/**
  * @title IBalanceTrackerErrors interface
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @dev Defines the custom errors used in the balance tracker contract.
@@ -109,6 +100,6 @@ interface IBalanceTrackerErrors {
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @dev The contract that tracks token balances for each account on a daily basis.
  */
-interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerConfiguration, IBalanceTrackerErrors {
+interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerErrors {
 
 }
