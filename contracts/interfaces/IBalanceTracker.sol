@@ -3,11 +3,21 @@
 pragma solidity 0.8.16;
 
 /**
- * @title IBalanceTracker interface
+ * @title IBalanceTrackerPrimary interface
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @dev The interface of a contract that tracks daily token balances.
+ * @dev The primary interface of a contract that tracks daily token balances.
  */
-interface IBalanceTracker {
+interface IBalanceTrackerPrimary {
+    // ------------------ Events ---------------------------------- //
+
+    /**
+     * @dev Emitted when a new balance record is created.
+     * @param account The address of the account.
+     * @param day The index of the day.
+     * @param balance The balance associated with the day.
+     */
+    event BalanceRecordCreated(address indexed account, uint16 day, uint240 balance);
+
     /**
      * @dev Returns the daily balances for the specified account and period.
      * @param account The address of the account to get the balances for.
@@ -25,4 +35,59 @@ interface IBalanceTracker {
      * @dev Returns the address of the hooked token contract.
      */
     function token() external view returns (address);
+}
+
+/**
+ * @title IBalanceTrackerConfiguration interface
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
+ * @dev The configuration part of the balance tracker smart contract interface.
+ */
+interface IBalanceTrackerConfiguration {
+
+}
+
+/**
+ * @title IBalanceTrackerErrors interface
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
+ * @dev Defines the custom errors used in the balance tracker contract.
+ *
+ * The errors are ordered alphabetically.
+ */
+interface IBalanceTrackerErrors {
+    // ------------------ Errors ---------------------------------- //
+
+    /**
+     * @dev Thrown when the specified "from" day is prior to the contract initialization day.
+     */
+    error FromDayPriorInitDay();
+
+    /**
+     * @dev Thrown when the specified "to" day is prior to the specified "from" day.
+     */
+    error ToDayPriorFromDay();
+
+    /**
+     * @dev Thrown when the value does not fit in the type uint16.
+     */
+    error SafeCastOverflowUint16();
+
+    /**
+     * @dev Thrown when the value does not fit in the type uint240.
+     */
+    error SafeCastOverflowUint240();
+
+    /**
+     * @dev Thrown when the caller is not the token contract.
+     * @param account The address of the caller.
+     */
+    error UnauthorizedCaller(address account);
+}
+
+/**
+ * @title IBalanceTracker interface
+ * @author CloudWalk Inc. (See https://www.cloudwalk.io)
+ * @dev The contract that tracks token balances for each account on a daily basis.
+ */
+interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerConfiguration, IBalanceTrackerErrors {
+
 }

@@ -5,6 +5,7 @@ pragma solidity 0.8.16;
 import { IERC20Upgradeable } from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import { IBalanceTrackerPrimary, IBalanceTrackerErrors } from "./interfaces/IBalanceTracker.sol";
 import { IBalanceTracker } from "./interfaces/IBalanceTracker.sol";
 import { IERC20Hook } from "./interfaces/IERC20Hook.sol";
 import { Versionable } from "./base/Versionable.sol";
@@ -48,44 +49,6 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
      * to add new variables without shifting down storage in the inheritance chain.
      */
     uint256[48] private __gap;
-
-    // ------------------ Events ---------------------------------- //
-
-    /**
-     * @dev Emitted when a new balance record is created.
-     * @param account The address of the account.
-     * @param day The index of the day.
-     * @param balance The balance associated with the day.
-     */
-    event BalanceRecordCreated(address indexed account, uint16 day, uint240 balance);
-
-    // ------------------ Errors ---------------------------------- //
-
-    /**
-     * @dev Thrown when the specified "from" day is prior to the contract initialization day.
-     */
-    error FromDayPriorInitDay();
-
-    /**
-     * @dev Thrown when the specified "to" day is prior to the specified "from" day.
-     */
-    error ToDayPriorFromDay();
-
-    /**
-     * @dev Thrown when the value does not fit in the type uint16.
-     */
-    error SafeCastOverflowUint16();
-
-    /**
-     * @dev Thrown when the value does not fit in the type uint240.
-     */
-    error SafeCastOverflowUint240();
-
-    /**
-     * @dev Thrown when the caller is not the token contract.
-     * @param account The address of the caller.
-     */
-    error UnauthorizedCaller(address account);
 
     // ------------------ Modifiers ------------------------------- //
 
@@ -194,7 +157,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     }
 
     /**
-     * @inheritdoc IBalanceTracker
+     * @inheritdoc IBalanceTrackerPrimary
      */
     function getDailyBalances(
         address account,
@@ -265,7 +228,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     }
 
     /**
-     * @inheritdoc IBalanceTracker
+     * @inheritdoc IBalanceTrackerPrimary
      */
     function dayAndTime() public view override returns (uint256, uint256) {
         uint256 timestamp = _blockTimestamp();
@@ -273,7 +236,7 @@ contract BalanceTracker is OwnableUpgradeable, IBalanceTracker, IERC20Hook, Vers
     }
 
     /**
-     * @inheritdoc IBalanceTracker
+     * @inheritdoc IBalanceTrackerPrimary
      */
     function token() external pure override returns (address) {
         return TOKEN;
