@@ -295,7 +295,7 @@ describe("Contract 'BalanceTracker'", async () => {
   const EXPECTED_VERSION: Version = {
     major: 1,
     minor: 1,
-    patch: 1
+    patch: 2
   };
 
   let balanceTrackerFactory: ContractFactory;
