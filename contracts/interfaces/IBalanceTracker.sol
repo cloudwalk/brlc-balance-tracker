@@ -98,6 +98,4 @@ interface IBalanceTrackerErrors {
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
  * @dev The full interface of the contract that tracks token balances for each account on a daily basis.
  */
-interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerErrors {
-
-}
+interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerErrors {}
