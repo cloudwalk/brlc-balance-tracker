@@ -5,7 +5,7 @@ pragma solidity 0.8.16;
 /**
  * @title IBalanceTrackerPrimary interface
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @dev The primary interface of a contract that tracks daily token balances.
+ * @dev The primary interface of the contract that tracks token balances for each account on a daily basis.
  */
 interface IBalanceTrackerPrimary {
     // ------------------ Types ----------------------------------- //
@@ -61,9 +61,7 @@ interface IBalanceTrackerPrimary {
 /**
  * @title IBalanceTrackerErrors interface
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @dev Defines the custom errors used in the balance tracker contract.
- *
- * The errors are ordered alphabetically.
+ * @dev The custom errors used in the contract that tracks token balances for each account on a daily basis.
  */
 interface IBalanceTrackerErrors {
     // ------------------ Errors ---------------------------------- //
@@ -98,7 +96,7 @@ interface IBalanceTrackerErrors {
 /**
  * @title IBalanceTracker interface
  * @author CloudWalk Inc. (See https://www.cloudwalk.io)
- * @dev The contract that tracks token balances for each account on a daily basis.
+ * @dev The full interface of the contract that tracks token balances for each account on a daily basis.
  */
 interface IBalanceTracker is IBalanceTrackerPrimary, IBalanceTrackerErrors {
 
