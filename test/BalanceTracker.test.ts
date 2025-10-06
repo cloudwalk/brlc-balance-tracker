@@ -9,7 +9,7 @@ import {
   getLatestBlockTimestamp,
   getTxTimestamp,
   increaseBlockTimestamp,
-  proveTx
+  proveTx,
 } from "../test-utils/eth";
 
 const HOUR_IN_SECONDS = 3600;
@@ -17,7 +17,7 @@ const DAY_IN_SECONDS = 24 * HOUR_IN_SECONDS;
 const NEGATIVE_TIME_SHIFT = 3 * HOUR_IN_SECONDS;
 const ZERO_ADDRESS = ethers.ZeroAddress;
 const ZERO_BIG_NUMBER = 0n;
-const INIT_TOKEN_BALANCE: bigint = 1000_000_000_000n;
+const INIT_TOKEN_BALANCE = 1000_000_000_000n;
 const MAX_UINT16 = 2 ** 16 - 1;
 const OVERFLOW_UINT16 = 2 ** 16;
 const OVERFLOW_UINT240 = 2n ** 240n;
@@ -77,7 +77,7 @@ function toDayAndTime(timestampInSeconds: number): { dayIndex: number; secondsOf
   const secondsOfDay = correctedTimestamp % DAY_IN_SECONDS;
   return {
     dayIndex,
-    secondsOfDay
+    secondsOfDay,
   };
 }
 
@@ -100,12 +100,12 @@ function toBalanceChanges(tokenTransfer: TokenTransfer): BalanceChange[] {
   const addressFromBalanceChange: BalanceChange = {
     executionDay: tokenTransfer.executionDay,
     address: tokenTransfer.addressFrom,
-    amountChange: 0n - tokenTransfer.amount
+    amountChange: 0n - tokenTransfer.amount,
   };
   const addressToBalanceChange: BalanceChange = {
     executionDay: tokenTransfer.executionDay,
     address: tokenTransfer.addressTo,
-    amountChange: tokenTransfer.amount
+    amountChange: tokenTransfer.amount,
   };
   return [addressFromBalanceChange, addressToBalanceChange];
 }
@@ -113,42 +113,42 @@ function toBalanceChanges(tokenTransfer: TokenTransfer): BalanceChange[] {
 async function checkBalanceRecordsForAccount(
   balanceTracker: Contract,
   accountAddress: string,
-  expectedBalanceRecords: BalanceRecord[]
+  expectedBalanceRecords: BalanceRecord[],
 ) {
   const expectedRecordArrayLength = expectedBalanceRecords.length;
   if (expectedRecordArrayLength == 0) {
     const actualBalanceRecordState = await balanceTracker.readBalanceRecord(accountAddress, 0);
     const actualBalanceRecord = actualBalanceRecordState[0];
-    const actualRecordArrayLength: number = Number(actualBalanceRecordState[1]);
+    const actualRecordArrayLength = Number(actualBalanceRecordState[1]);
     expect(actualRecordArrayLength).to.equal(
       expectedRecordArrayLength,
-      `Wrong record balance array length for account ${accountAddress}. The array should be empty`
+      `Wrong record balance array length for account ${accountAddress}. The array should be empty`,
     );
     expect(actualBalanceRecord.day).to.equal(
       0,
-      `Wrong field 'balanceRecord[0].day' for empty balance record array of account ${accountAddress}`
+      `Wrong field 'balanceRecord[0].day' for empty balance record array of account ${accountAddress}`,
     );
     expect(actualBalanceRecord.value).to.equal(
       0,
-      `Wrong field 'balanceRecord[0].value' for empty balance record array of account ${accountAddress}`
+      `Wrong field 'balanceRecord[0].value' for empty balance record array of account ${accountAddress}`,
     );
   } else {
     for (let i = 0; i < expectedRecordArrayLength; ++i) {
       const expectedBalanceRecord: BalanceRecord = expectedBalanceRecords[i];
       const actualBalanceRecordState = await balanceTracker.readBalanceRecord(accountAddress, i);
       const actualBalanceRecord = actualBalanceRecordState[0];
-      const actualRecordArrayLength: number = Number(actualBalanceRecordState[1]);
+      const actualRecordArrayLength = Number(actualBalanceRecordState[1]);
       expect(actualRecordArrayLength).to.equal(
         expectedRecordArrayLength,
-        `Wrong record balance array length for account ${accountAddress}`
+        `Wrong record balance array length for account ${accountAddress}`,
       );
       expect(actualBalanceRecord.day).to.equal(
         expectedBalanceRecord.day,
-        `Wrong field 'balanceRecord[${i}].day' for account ${accountAddress}`
+        `Wrong field 'balanceRecord[${i}].day' for account ${accountAddress}`,
       );
       expect(actualBalanceRecord.value).to.equal(
         expectedBalanceRecord.value,
-        `Wrong field 'balanceRecord[${i}].value' for account ${accountAddress}`
+        `Wrong field 'balanceRecord[${i}].value' for account ${accountAddress}`,
       );
     }
   }
@@ -167,7 +167,7 @@ function applyBalanceChange(context: TestContext, balanceChange: BalanceChange):
     accountAddress: address,
     index: 0,
     day: balanceChange.executionDay - 1,
-    value: balance
+    value: balance,
   };
   if (balanceRecords.length === 0) {
     if (balanceChange.executionDay === context.balanceTrackerInitDay) {
@@ -195,13 +195,13 @@ function defineExpectedDailyBalances(context: TestContext, dailyBalancesRequest:
   if (dayFrom < context.balanceTrackerInitDay) {
     throw new Error(
       `Cannot define daily balances because 'dayFrom' is less than the BalanceTracker init day. ` +
-      `The 'dayFrom' value: ${dayFrom}. The init day: ${context.balanceTrackerInitDay}`
+      `The 'dayFrom' value: ${dayFrom}. The init day: ${context.balanceTrackerInitDay}`,
     );
   }
   if (dayFrom > dayTo) {
     throw new Error(
       `Cannot define daily balances because 'dayFrom' is greater than 'dayTo'. ` +
-      `The 'dayFrom' value: ${dayFrom}. The 'dayTo' value: ${dayTo}`
+      `The 'dayFrom' value: ${dayFrom}. The 'dayTo' value: ${dayTo}`,
     );
   }
   const dailyBalances: bigint[] = [];
@@ -254,7 +254,7 @@ async function deployTokenMockFromSpecialAccount(deployer: HardhatEthersSigner):
       "The special account has already sent transactions on this network. " +
       "Please reset (and restart if needed) the network or provide a different private key for the special account. " +
       "If you choose the latter, ensure the 'TOKEN' constant in 'BalanceTracker' is updated with the address " +
-      "of the first contract deployed by the special account."
+      "of the first contract deployed by the special account.",
     );
   }
   const gasPrice: bigint = (await ethers.provider.getFeeData()).gasPrice ?? 0n;
@@ -266,7 +266,7 @@ async function deployTokenMockFromSpecialAccount(deployer: HardhatEthersSigner):
 
     await proveTx(deployer.sendTransaction({
       to: wallet.address,
-      value: ethAmount.toString()
+      value: ethAmount.toString(),
     }));
   }
 
@@ -295,7 +295,7 @@ describe("Contract 'BalanceTracker'", async () => {
   const EXPECTED_VERSION: Version = {
     major: 1,
     minor: 1,
-    patch: 2
+    patch: 2,
   };
 
   let balanceTrackerFactory: ContractFactory;
@@ -319,9 +319,10 @@ describe("Contract 'BalanceTracker'", async () => {
     const balanceTracker = await upgrades.deployProxy(
       balanceTrackerFactory,
       [],
-      { unsafeSkipProxyAdminCheck: true } // This is necessary to run tests on other networks
+      { unsafeSkipProxyAdminCheck: true }, // This is necessary to run tests on other networks
     );
     await balanceTracker.waitForDeployment();
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const tx = balanceTracker.deploymentTransaction()!;
     const deploymentTimestamp = await getTxTimestamp(tx);
     const balanceTrackerInitDay = toDayIndex(deploymentTimestamp);
@@ -330,21 +331,21 @@ describe("Contract 'BalanceTracker'", async () => {
     await proveTx(tokenMock.setBalance(user2.address, INIT_TOKEN_BALANCE));
     return {
       balanceTracker: connect(balanceTracker, deployer),
-      balanceTrackerInitDay
+      balanceTrackerInitDay,
     };
   }
 
   async function initTestContext(): Promise<TestContext> {
     const { balanceTracker, balanceTrackerInitDay } = await setUpFixture(deployAndConfigureContracts);
-    const balanceByAddressMap: Map<string, bigint> = new Map();
+    const balanceByAddressMap = new Map<string, bigint>();
     balanceByAddressMap.set(user1.address, INIT_TOKEN_BALANCE);
     balanceByAddressMap.set(user2.address, INIT_TOKEN_BALANCE);
-    const balanceRecordsByAddressMap: Map<string, BalanceRecord[]> = new Map();
+    const balanceRecordsByAddressMap = new Map<string, BalanceRecord[]>();
     return {
       balanceTracker,
       balanceTrackerInitDay,
       balanceByAddressMap,
-      balanceRecordsByAddressMap
+      balanceRecordsByAddressMap,
     };
   }
 
@@ -355,7 +356,7 @@ describe("Contract 'BalanceTracker'", async () => {
       const transfer: TokenTransfer = transfers[i];
       if (transfer.executionDay < previousTransferDay) {
         throw new Error(
-          `In the array of token transfers transfer[${i}] has execution day lower than one of the previous transfer`
+          `In the array of token transfers transfer[${i}] has execution day lower than one of the previous transfer`,
         );
       }
       const nextRelativeDay = transfer.executionDay - previousTransferDay;
@@ -366,7 +367,7 @@ describe("Contract 'BalanceTracker'", async () => {
         getAddress(balanceTracker),
         transfer.addressFrom,
         transfer.addressTo,
-        transfer.amount
+        transfer.amount,
       );
       const balanceChanges: BalanceChange[] = toBalanceChanges(transfer);
       const newBalanceRecord1: BalanceRecord | undefined = applyBalanceChange(context, balanceChanges[0]);
@@ -381,7 +382,7 @@ describe("Contract 'BalanceTracker'", async () => {
             .withArgs(
               newBalanceRecord1.accountAddress,
               newBalanceRecord1.day,
-              newBalanceRecord1.value
+              newBalanceRecord1.value,
             );
         }
         if (newBalanceRecord2) {
@@ -390,7 +391,7 @@ describe("Contract 'BalanceTracker'", async () => {
             .withArgs(
               newBalanceRecord2.accountAddress,
               newBalanceRecord2.day,
-              newBalanceRecord2.value
+              newBalanceRecord2.value,
             );
         }
       }
@@ -428,14 +429,14 @@ describe("Contract 'BalanceTracker'", async () => {
     it("Returns expected values", async () => {
       const { balanceTracker } = await setUpFixture(deployAndConfigureContracts);
       const balanceTrackerVersion = await balanceTracker.$__VERSION();
-      Object.keys(EXPECTED_VERSION).forEach(property => {
+      Object.keys(EXPECTED_VERSION).forEach((property) => {
         const value = balanceTrackerVersion[property];
         if (typeof value === "undefined" || typeof value === "function" || typeof value === "object") {
           throw Error(`Property "${property}" is not found`);
         }
         expect(value).to.eq(
           EXPECTED_VERSION[property],
-          `Mismatch in the "${property}" property`
+          `Mismatch in the "${property}" property`,
         );
       });
     });
@@ -460,7 +461,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: user1.address,
               addressTo: user2.address,
-              amount: 123456789n
+              amount: 123456789n,
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -472,7 +473,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: user1.address,
               addressTo: ZERO_ADDRESS,
-              amount: 123456789n
+              amount: 123456789n,
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -484,7 +485,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: ZERO_ADDRESS,
               addressTo: user2.address,
-              amount: 123456789n
+              amount: 123456789n,
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -498,7 +499,7 @@ describe("Contract 'BalanceTracker'", async () => {
               executionDay: nextDayAfterInit,
               addressFrom: user1.address,
               addressTo: user2.address,
-              amount: ZERO_BIG_NUMBER
+              amount: ZERO_BIG_NUMBER,
             };
             await checkTokenTransfers(context, [transfer]);
           });
@@ -512,7 +513,7 @@ describe("Contract 'BalanceTracker'", async () => {
             executionDay: context.balanceTrackerInitDay,
             addressFrom: user1.address,
             addressTo: user2.address,
-            amount: 123456789n
+            amount: 123456789n,
           };
           await checkTokenTransfers(context, [transfer]);
         });
@@ -526,13 +527,13 @@ describe("Contract 'BalanceTracker'", async () => {
             executionDay: nextDayAfterInit,
             addressFrom: user1.address,
             addressTo: user2.address,
-            amount: 123456789n
+            amount: 123456789n,
           };
           const transfer2: TokenTransfer = {
             executionDay: nextDayAfterInit,
             addressFrom: user2.address,
             addressTo: user1.address,
-            amount: 987654321n
+            amount: 987654321n,
           };
           await checkTokenTransfers(context, [transfer1, transfer2]);
         });
@@ -554,8 +555,8 @@ describe("Contract 'BalanceTracker'", async () => {
           await proveTx(
             tokenMock.setBalance(
               user1.address,
-              wrongValue
-            )
+              wrongValue,
+            ),
           );
 
           await increaseBlockchainTimeToSpecificRelativeDay(1);
@@ -565,8 +566,8 @@ describe("Contract 'BalanceTracker'", async () => {
               getAddress(context.balanceTracker),
               user1.address,
               user2.address,
-              1
-            )
+              1,
+            ),
           ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_SAFE_CAST_OVERFLOW_UINT240);
         });
 
@@ -584,8 +585,8 @@ describe("Contract 'BalanceTracker'", async () => {
               getAddress(context.balanceTracker),
               user1.address,
               user2.address,
-              1
-            )
+              1,
+            ),
           ).to.be.revertedWithCustomError(context.balanceTracker, ERROR_NAME_SAFE_CAST_OVERFLOW_UINT16);
 
           await proveTx(context.balanceTracker.setUsingRealBlockTimestamps(true));
@@ -611,51 +612,51 @@ describe("Contract 'BalanceTracker'", async () => {
         context: TestContext,
         tokenTransfers: TokenTransfer[],
         dayFrom: number,
-        dayTo: number
+        dayTo: number,
       ) {
         await executeTokenTransfers(context, tokenTransfers);
         const expectedDailyBalancesForUser1: bigint[] = defineExpectedDailyBalances(context, {
           address: user1.address,
           dayFrom,
-          dayTo
+          dayTo,
         });
         const expectedDailyBalancesForUser2: bigint[] = defineExpectedDailyBalances(context, {
           address: user2.address,
           dayFrom,
-          dayTo
+          dayTo,
         });
         const actualDailyBalancesForUser1: bigint[] = await context.balanceTracker.getDailyBalances(
           user1.address,
           dayFrom,
-          dayTo
+          dayTo,
         );
         const actualDailyBalancesForUser2: bigint[] = await context.balanceTracker.getDailyBalances(
           user2.address,
           dayFrom,
-          dayTo
+          dayTo,
         );
         expect(expectedDailyBalancesForUser1).to.deep.equal(actualDailyBalancesForUser1);
         expect(expectedDailyBalancesForUser2).to.deep.equal(actualDailyBalancesForUser2);
       }
 
-      function prepareTokenTransfers(firstTransferDay: number, numberOfTransfers: number = 3): TokenTransfer[] {
+      function prepareTokenTransfers(firstTransferDay: number, numberOfTransfers = 3): TokenTransfer[] {
         const transfer1: TokenTransfer = {
           executionDay: firstTransferDay,
           addressFrom: user1.address,
           addressTo: user2.address,
-          amount: 123456789n
+          amount: 123456789n,
         };
         const transfer2: TokenTransfer = {
           executionDay: firstTransferDay + 3,
           addressFrom: user2.address,
           addressTo: user1.address,
-          amount: 987654321n
+          amount: 987654321n,
         };
         const transfer3: TokenTransfer = {
           executionDay: firstTransferDay + 7,
           addressFrom: user1.address,
           addressTo: user2.address,
-          amount: 987654320n / 2n
+          amount: 987654320n / 2n,
         };
         if (numberOfTransfers > 3 || numberOfTransfers < 1) {
           throw Error(`Invalid number of transfers: ${numberOfTransfers}`);
@@ -1104,20 +1105,20 @@ describe("Contract 'BalanceTracker'", async () => {
         accountAddress,
         index: 0,
         day: 123,
-        value: 3456789n
+        value: 3456789n,
       },
       {
         accountAddress,
         index: 1,
         day: 321,
-        value: 987654321n
-      }
+        value: 987654321n,
+      },
     ];
 
     const balanceRecordsRaw: { day: number; value: bigint }[] = balanceRecords.map(record => (
       {
         day: record.day,
-        value: record.value
+        value: record.value,
       }
     ));
 
@@ -1175,7 +1176,7 @@ describe("Contract 'BalanceTracker'", async () => {
         await proveTx(context.balanceTracker.addBalanceRecord(
           balanceRecord.accountAddress,
           balanceRecord.day,
-          balanceRecord.value
+          balanceRecord.value,
         ));
         await checkBalanceRecordsForAccount(context.balanceTracker, balanceRecord.accountAddress, [balanceRecord]);
       });
@@ -1188,11 +1189,11 @@ describe("Contract 'BalanceTracker'", async () => {
           connect(context.balanceTracker, attacker).addBalanceRecord(
             balanceRecord.accountAddress,
             balanceRecord.day,
-            balanceRecord.value
-          )
+            balanceRecord.value,
+          ),
         ).to.be.revertedWithCustomError(
           context.balanceTracker,
-          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN
+          ERROR_NAME_UNAUTHORIZED_HARNESS_ADMIN,
         ).withArgs(attacker.address);
       });
     });
